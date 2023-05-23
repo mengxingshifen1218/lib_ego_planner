@@ -37,7 +37,7 @@ namespace ego_planner
       const bool flag_randomPolyTraj, const bool touch_goal)
   {
     Time t_start = Now();
-    chrono::duration<double>  t_init, t_opt;
+    chrono::duration<double> t_init, t_opt;
 
     static int count = 0;
     // cout << "\033[47;30m\n[" << t_start << "] Drone " << pp_.drone_id << " Replan " << count++ << "\033[0m" << endl;
@@ -50,6 +50,7 @@ namespace ego_planner
     /*** STEP 1: INIT ***/
     ploy_traj_opt_->setIfTouchGoal(touch_goal);
     double ts = pp_.polyTraj_piece_length / pp_.max_vel_;
+    cout << "init estimate ts:: " << ts << " s" << endl;
 
     poly_traj::MinJerkOpt init_MJO;
     if (!computeInitState(start_pt, start_vel, start_acc, local_target_pt, local_target_vel,
@@ -59,6 +60,7 @@ namespace ego_planner
     }
 
     Eigen::MatrixXd cstr_pts = init_MJO.getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
+
     vector<std::pair<int, int>> segments;
     if (ploy_traj_opt_->finelyCheckAndSetConstraintPoints(segments, init_MJO, true) == PolyTrajOptimizer::CHK_RET::ERR)
     {
@@ -70,7 +72,6 @@ namespace ego_planner
     std::vector<Eigen::Vector2d> point_set;
     for (int i = 0; i < cstr_pts.cols(); ++i)
       point_set.push_back(cstr_pts.col(i));
-
 
     t_start = Now();
 
@@ -134,10 +135,12 @@ namespace ego_planner
     }
     else
     {
+
       poly_traj::Trajectory initTraj = init_MJO.getTraj();
+
       int PN = initTraj.getPieceNum();
       Eigen::MatrixXd all_pos = initTraj.getPositions();
-      Eigen::MatrixXd innerPts = all_pos.block(0, 1, 3, PN - 1);
+      Eigen::MatrixXd innerPts = all_pos.block(0, 1, 2, PN - 1);
       Eigen::Matrix<double, 2, 3> headState, tailState;
       headState << initTraj.getJuncPos(0), initTraj.getJuncVel(0), initTraj.getJuncAcc(0);
       tailState << initTraj.getJuncPos(PN), initTraj.getJuncVel(PN), initTraj.getJuncAcc(PN);
@@ -195,11 +198,11 @@ namespace ego_planner
       flag_first_call = false;
 
       /* basic params */
-      Eigen::Matrix<double, DIME_SIZE, 3>  headState, tailState;
+      Eigen::Matrix<double, DIME_SIZE, 3> headState, tailState;
       Eigen::MatrixXd innerPs;
-      Eigen::VectorXd piece_dur_vec;
+      Eigen::VectorXd piece_duration_vec;
       int piece_nums;
-      constexpr double init_of_init_totaldur = 2.0;
+      constexpr double init_total_duration = 2.0;
       headState << start_pt, start_vel, start_acc;
       tailState << local_target_pt, local_target_vel, Eigen::Vector2d::Zero();
 
@@ -213,8 +216,8 @@ namespace ego_planner
         }
 
         piece_nums = 1;
-        piece_dur_vec.resize(1);
-        piece_dur_vec(0) = init_of_init_totaldur;
+        piece_duration_vec.resize(1);
+        piece_duration_vec(0) = init_total_duration;
       }
       else
       {
@@ -222,39 +225,42 @@ namespace ego_planner
         innerPs.resize(2, 1);
         innerPs = (start_pt + local_target_pt) / 2 +
                   (((double)rand()) / RAND_MAX - 0.5) *
-                      (start_pt - local_target_pt) * 0.8 * (-0.978 / (continous_failures_count_ + 0.989) + 0.989) ;
+                      (start_pt - local_target_pt) * 0.8 * (-0.978 / (continous_failures_count_ + 0.989) + 0.989);
 
         piece_nums = 2;
-        piece_dur_vec.resize(2);
-        piece_dur_vec = Eigen::Vector2d(init_of_init_totaldur / 2, init_of_init_totaldur / 2);
+        piece_duration_vec.resize(2);
+        piece_duration_vec = Eigen::Vector2d(init_total_duration / 2, init_total_duration / 2);
       }
 
       /* generate the init of init trajectory */
       init_MJO.reset(headState, tailState, piece_nums);
-      init_MJO.generate(innerPs, piece_dur_vec);
+      init_MJO.generate(innerPs, piece_duration_vec);
       poly_traj::Trajectory initTraj = init_MJO.getTraj();
 
       /* generate the real init trajectory */
       piece_nums = round((headState.col(0) - tailState.col(0)).norm() / pp_.polyTraj_piece_length);
       if (piece_nums < 2)
         piece_nums = 2;
-      double piece_dur = init_of_init_totaldur / (double)piece_nums;
-      piece_dur_vec.resize(piece_nums);
-      piece_dur_vec = Eigen::VectorXd::Constant(piece_nums, ts);
-      innerPs.resize(3, piece_nums - 1);
+      double piece_duration = init_total_duration / (double)piece_nums;
+      piece_duration_vec.resize(piece_nums);
+      piece_duration_vec = Eigen::VectorXd::Constant(piece_nums, ts);
+
+
+      innerPs.resize(2, piece_nums - 1);
       int id = 0;
-      double t_s = piece_dur, t_e = init_of_init_totaldur - piece_dur / 2;
-      for (double t = t_s; t < t_e; t += piece_dur)
+      double t_s = piece_duration, t_e = init_total_duration - piece_duration / 2;
+      for (double t = t_s; t < t_e; t += piece_duration)
       {
         innerPs.col(id++) = initTraj.getPos(t);
       }
+
       if (id != piece_nums - 1)
       {
-        printf("Should not happen! x_x");
+        printf("Should not happen! innerPs calculation\n");
         return false;
       }
       init_MJO.reset(headState, tailState, piece_nums);
-      init_MJO.generate(innerPs, piece_dur_vec);
+      init_MJO.generate(innerPs, piece_duration_vec);
     }
     else /*** case 2: initialize from previous optimal trajectory ***/
     {
@@ -273,18 +279,18 @@ namespace ego_planner
         return false;
       }
       double t_to_local_target = t_to_local_end +
-                           (traj_.global_traj.global_t_local_target - traj_.global_traj.global_t_last_local_target);
+                                 (traj_.global_traj.global_t_local_target - traj_.global_traj.global_t_last_local_target);
       int piece_nums = ceil((start_pt - local_target_pt).norm() / pp_.polyTraj_piece_length);
       if (piece_nums < 2)
         piece_nums = 2;
 
       Eigen::Matrix<double, DIME_SIZE, 3> headState, tailState;
       Eigen::MatrixXd innerPs(3, piece_nums - 1);
-      Eigen::VectorXd piece_dur_vec = Eigen::VectorXd::Constant(piece_nums, t_to_local_target / piece_nums);
+      Eigen::VectorXd piece_duration_vec = Eigen::VectorXd::Constant(piece_nums, t_to_local_target / piece_nums);
       headState << start_pt, start_vel, start_acc;
       tailState << local_target_pt, local_target_vel, Eigen::Vector2d::Zero();
 
-      double t = piece_dur_vec(0);
+      double t = piece_duration_vec(0);
       for (int i = 0; i < piece_nums - 1; ++i)
       {
         if (t < t_to_local_end)
@@ -301,11 +307,11 @@ namespace ego_planner
           printf("Should not happen! x_x 0x88 t=%.2f, t_to_local_end=%.2f, t_to_local_target=%.2f", t, t_to_local_end, t_to_local_target);
         }
 
-        t += piece_dur_vec(i + 1);
+        t += piece_duration_vec(i + 1);
       }
 
       init_MJO.reset(headState, tailState, piece_nums);
-      init_MJO.generate(innerPs, piece_dur_vec);
+      init_MJO.generate(innerPs, piece_duration_vec);
     }
 
     return true;
@@ -383,7 +389,6 @@ namespace ego_planner
 
     return true;
   }
-
 
   bool EGOPlannerManager::planGlobalTrajWaypoints(
       const Eigen::Vector2d &start_pos, const Eigen::Vector2d &start_vel,

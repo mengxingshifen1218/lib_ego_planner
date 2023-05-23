@@ -30,7 +30,7 @@ namespace poly_traj
 
         inline int getDim() const
         {
-            return 3;
+            return 2;
         }
 
         inline int getOrder() const
@@ -435,7 +435,7 @@ namespace poly_traj
         inline Eigen::MatrixXd getPositions() const
         {
             int N = getPieceNum();
-            Eigen::MatrixXd positions(3, N + 1);
+            Eigen::MatrixXd positions(2, N + 1);
             for (int i = 0; i < N; i++)
             {
                 positions.col(i) = pieces[i].getCoeffMat().col(5);
@@ -909,8 +909,8 @@ namespace poly_traj
 
     private:
         int N;
-        Eigen::Matrix2d headPVA;
-        Eigen::Matrix2d tailPVA;
+        Eigen::MatrixXd headPVA;
+        Eigen::MatrixXd tailPVA;
         Eigen::VectorXd T1;
         BandedSystem A;
         Eigen::MatrixXd b;
@@ -965,7 +965,8 @@ namespace poly_traj
         template <typename EIGENVEC>
         inline void addPropCtoT(const Eigen::MatrixXd &adjGdC, EIGENVEC &gdT) const
         {
-            Eigen::MatrixXd B1(6, 3), B2(3, 3);
+            // TODO
+            Eigen::MatrixXd B1(6, 2), B2(3, 2);
 
             Eigen::RowVector2d negVel, negAcc, negJer, negSnp, negCrk;
 
@@ -1006,7 +1007,7 @@ namespace poly_traj
                        60.0 * T2(N - 1) * b.row(6 * N - 1));
 
             B2 << negVel, negAcc, negJer;
-
+            // TODO
             gdT(N - 1) += B2.cwiseProduct(adjGdC.block<3, 2>(6 * N - 3, 0)).sum();
 
             return;
@@ -1082,6 +1083,7 @@ namespace poly_traj
                     K = cfgHs[idx].cols();
                     for (int k = 0; k < K; k++)
                     {
+                        // TODO 
                         outerNormal = cfgHs[idx].col(k).head<3>();
                         violaPos = outerNormal.dot(pos - cfgHs[idx].col(k).tail<3>());
                         if (violaPos > 0.0)
@@ -1140,8 +1142,8 @@ namespace poly_traj
             tailPVA = tailState;
             T1.resize(N);
             A.create(6 * N, 6, 6);
-            b.resize(6 * N, 3);
-            gdC.resize(6 * N, 3);
+            b.resize(6 * N, 2);
+            gdC.resize(6 * N, 2);
             // gdT.resize(6 * N);
             return;
         }
@@ -1308,7 +1310,7 @@ namespace poly_traj
 
         inline Eigen::MatrixXd getInitConstraintPoints(const int K) const
         {
-            Eigen::MatrixXd pts(3, N * K + 1);
+            Eigen::MatrixXd pts(2, N * K + 1);
             Eigen::Vector2d pos;
             Eigen::Matrix<double, 6, 1> beta0;
             double s1, s2, s3, s4, s5;

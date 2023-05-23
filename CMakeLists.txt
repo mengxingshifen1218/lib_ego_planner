@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(lib_ego_planner)
 
-set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE "Debug")
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)

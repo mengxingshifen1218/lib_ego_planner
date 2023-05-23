@@ -1,11 +1,13 @@
 #include "planner_manager.h"
 #include <thread>
+
+using namespace std;
 /* planning utils */
 ego_planner::EGOPlannerManager::Ptr planner_manager_;
 
 // TODO 指定
-Eigen::Vector2d start_pt_, start_vel_, start_acc_;   // start state
-Eigen::Vector2d final_goal_;                         // goal state
+Eigen::Vector2d start_pt_, start_vel_, start_acc_; // start state
+Eigen::Vector2d final_goal_;                       // goal state
 
 Eigen::Vector2d local_target_pt_, local_target_vel_; // local target state
 Eigen::Vector2d odom_pos_, odom_vel_, odom_acc_;     // odometry state
@@ -21,7 +23,7 @@ bool callReboundReplan(bool flag_use_poly_init, bool flag_randomPolyTraj)
         planning_horizon_, start_pt_, final_goal_,
         local_target_pt_, local_target_vel_,
         touch_goal_);
-
+    cout<<"local target: "<< local_target_pt_.transpose()<<endl;
     bool plan_success = planner_manager_->reboundReplan(
         start_pt_, start_vel_, start_acc_,
         local_target_pt_, local_target_vel_,
@@ -61,16 +63,19 @@ int main()
 {
     planner_manager_.reset(new ego_planner::EGOPlannerManager);
     planner_manager_->initPlanModules();
+    start_pt_  = Eigen::Vector2d(0.0, 0.0);
+    start_vel_ = Eigen::Vector2d(0.0, 0.0);
+    start_acc_ = Eigen::Vector2d(0.0, 0.0);
 
+    final_goal_ = Eigen::Vector2d(4.0, 5.0);
     Time start = Now();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    planFromGlobalTraj(1);
+
     Time end = Now();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    Time end_2 = Now();
-    chrono::duration<double>  t_init = end - start;
-    chrono::duration<double>  t_end = end_2 - end;
-    printf("t_init: %f  t_end: %f \n", t_init.count(), (t_init + t_end).count());
-    printf("start: %f end: %f duration: %f %f s\n", toSec(start), toSec(end), toSec(end) - toSec(start), (end - start).count() / 1e9);
+    chrono::duration<double> t_init = end - start;
+
+    printf("optimize cost: %f s  \n", t_init.count());
     return 0;
 }
 // bool planFromLocalTraj(const int trial_times /*=1*/)

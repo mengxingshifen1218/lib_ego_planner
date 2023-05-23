@@ -4,36 +4,14 @@ void GridMap::initMap()
 {
 
   /* get parameter */
-  // double x_size, y_size, z_size;
-  // node_.param("grid_map/pose_type", mp_.pose_type_, 1);
-  // node_.param("grid_map/frame_id", mp_.frame_id_, string("world"));
-  // node_.param("grid_map/odom_depth_timeout", mp_.odom_depth_timeout_, 1.0);
-
-  // node_.param("grid_map/resolution", mp_.resolution_, -1.0);
-  // node_.param("grid_map/local_update_range_x", mp_.local_update_range3d_(0), -1.0);
-  // node_.param("grid_map/local_update_range_y", mp_.local_update_range3d_(1), -1.0);
-  // node_.param("grid_map/local_update_range_z", mp_.local_update_range3d_(2), -1.0);
-  // node_.param("grid_map/obstacles_inflation", mp_.obstacles_inflation_,  -1.0);
-  // node_.param("grid_map/enable_virtual_wall", mp_.enable_virtual_walll_, false);
-  // node_.param("grid_map/virtual_ceil", mp_.virtual_ceil_, -1.0);
-  // node_.param("grid_map/virtual_ground", mp_.virtual_ground_, -1.0);
+  
   mp_.resolution_ = 0.1;
-  mp_.local_update_range3d_(0) = 5.5;
-  mp_.local_update_range3d_(1) = 5.5;
+  mp_.local_update_range2d_(0) = 5.5;
+  mp_.local_update_range2d_(1) = 5.5;
   mp_.obstacles_inflation_ = 0.1;
   mp_.enable_virtual_walll_ = true;
   mp_.virtual_ceil_ = 3.0;
   mp_.virtual_ground_ = 0.1;
-
-  // node_.param("grid_map/p_hit", mp_.p_hit_, 0.70);
-  // node_.param("grid_map/p_miss", mp_.p_miss_, 0.35);
-  // node_.param("grid_map/p_min", mp_.p_min_, 0.12);
-  // node_.param("grid_map/p_max", mp_.p_max_, 0.97);
-  // node_.param("grid_map/p_occ", mp_.p_occ_, 0.80);
-  // node_.param("grid_map/fading_time", mp_.fading_time_, 1000.0);
-  // node_.param("grid_map/min_ray_length", mp_.min_ray_length_, 0.1);
-
-  // node_.param("grid_map/show_occ_time", mp_.show_occ_time_, false);
 
   mp_.inf_grid_ = ceil((mp_.obstacles_inflation_ - 1e-5) / mp_.resolution_);
   if (mp_.inf_grid_ > 4)
@@ -44,18 +22,18 @@ void GridMap::initMap()
   }
 
   mp_.resolution_inv_ = 1 / mp_.resolution_;
-  mp_.local_update_range3i_ = (mp_.local_update_range3d_ * mp_.resolution_inv_).array().ceil().cast<int>();
-  mp_.local_update_range3d_ = mp_.local_update_range3i_.array().cast<double>() * mp_.resolution_;
-  md_.ringbuffer_size3i_ = 2 * mp_.local_update_range3i_;
-  md_.ringbuffer_inf_size3i_ = md_.ringbuffer_size3i_ + Eigen::Vector2i(2 * mp_.inf_grid_, 2 * mp_.inf_grid_);
+  mp_.local_update_range2i_ = (mp_.local_update_range2d_ * mp_.resolution_inv_).array().ceil().cast<int>();
+  mp_.local_update_range2d_ = mp_.local_update_range2i_.array().cast<double>() * mp_.resolution_;
+  md_.ringbuffer_size2i_ = 2 * mp_.local_update_range2i_;
+  md_.ringbuffer_inf_size2i_ = md_.ringbuffer_size2i_ + Eigen::Vector2i(2 * mp_.inf_grid_, 2 * mp_.inf_grid_);
 
 
   // initialize data buffers
-  Eigen::Vector2i map_voxel_num3i = 2 * mp_.local_update_range3i_;
-  int buffer_size = map_voxel_num3i(0) * map_voxel_num3i(1);
-  int buffer_inf_size = (map_voxel_num3i(0) + 2 * mp_.inf_grid_) * (map_voxel_num3i(1) + 2 * mp_.inf_grid_) ;
-  md_.ringbuffer_origin3i_ = Eigen::Vector2i(0, 0);
-  md_.ringbuffer_inf_origin3i_ = Eigen::Vector2i(0, 0);
+  Eigen::Vector2i map_voxel_num2i = 2 * mp_.local_update_range2i_;
+  int buffer_size = map_voxel_num2i(0) * map_voxel_num2i(1);
+  int buffer_inf_size = (map_voxel_num2i(0) + 2 * mp_.inf_grid_) * (map_voxel_num2i(1) + 2 * mp_.inf_grid_) ;
+  md_.ringbuffer_origin2i_ = Eigen::Vector2i(0, 0);
+  md_.ringbuffer_inf_origin2i_ = Eigen::Vector2i(0, 0);
 
   md_.occupancy_buffer_ = vector<double>(buffer_size, mp_.clamp_min_log_);
   md_.occupancy_buffer_inflate_ = vector<uint16_t>(buffer_inf_size, 0);
@@ -105,39 +83,39 @@ void GridMap::initMapBoundary()
 {
   mp_.have_initialized_ = true;
 
-  md_.ringbuffer_lowbound3i_ = md_.center_last3i_ - mp_.local_update_range3i_;
-  md_.ringbuffer_lowbound3d_ = md_.ringbuffer_lowbound3i_.cast<double>() * mp_.resolution_;
-  md_.ringbuffer_upbound3i_ = md_.center_last3i_ + mp_.local_update_range3i_;
-  md_.ringbuffer_upbound3d_ = md_.ringbuffer_upbound3i_.cast<double>() * mp_.resolution_;
-  md_.ringbuffer_upbound3i_ -= Eigen::Vector2i(1, 1);
+  md_.ringbuffer_lowbound2i_ = md_.center_last2i_ - mp_.local_update_range2i_;
+  md_.ringbuffer_lowbound2d_ = md_.ringbuffer_lowbound2i_.cast<double>() * mp_.resolution_;
+  md_.ringbuffer_upbound2i_ = md_.center_last2i_ + mp_.local_update_range2i_;
+  md_.ringbuffer_upbound2d_ = md_.ringbuffer_upbound2i_.cast<double>() * mp_.resolution_;
+  md_.ringbuffer_upbound2i_ -= Eigen::Vector2i(1, 1);
 
-  const Eigen::Vector2i inf_grid3i(mp_.inf_grid_, mp_.inf_grid_);
-  const Eigen::Vector2d inf_grid3d = inf_grid3i.array().cast<double>() * mp_.resolution_;
-  md_.ringbuffer_inf_lowbound3i_ = md_.ringbuffer_lowbound3i_ - inf_grid3i;
-  md_.ringbuffer_inf_lowbound3d_ = md_.ringbuffer_lowbound3d_ - inf_grid3d;
-  md_.ringbuffer_inf_upbound3i_ = md_.ringbuffer_upbound3i_ + inf_grid3i;
-  md_.ringbuffer_inf_upbound3d_ = md_.ringbuffer_upbound3d_ + inf_grid3d;
+  const Eigen::Vector2i inf_grid2i(mp_.inf_grid_, mp_.inf_grid_);
+  const Eigen::Vector2d inf_grid2d = inf_grid2i.array().cast<double>() * mp_.resolution_;
+  md_.ringbuffer_inf_lowbound2i_ = md_.ringbuffer_lowbound2i_ - inf_grid2i;
+  md_.ringbuffer_inf_lowbound2d_ = md_.ringbuffer_lowbound2d_ - inf_grid2d;
+  md_.ringbuffer_inf_upbound2i_ = md_.ringbuffer_upbound2i_ + inf_grid2i;
+  md_.ringbuffer_inf_upbound2d_ = md_.ringbuffer_upbound2d_ + inf_grid2d;
 
-  // cout << "md_.ringbuffer_lowbound3i_=" << md_.ringbuffer_lowbound3i_.transpose() << " md_.ringbuffer_lowbound3d_=" << md_.ringbuffer_lowbound3d_.transpose() << " md_.ringbuffer_upbound3i_=" << md_.ringbuffer_upbound3i_.transpose() << " md_.ringbuffer_upbound3d_=" << md_.ringbuffer_upbound3d_.transpose() << endl;
+  // cout << "md_.ringbuffer_lowbound2i_=" << md_.ringbuffer_lowbound2i_.transpose() << " md_.ringbuffer_lowbound2d_=" << md_.ringbuffer_lowbound2d_.transpose() << " md_.ringbuffer_upbound2i_=" << md_.ringbuffer_upbound2i_.transpose() << " md_.ringbuffer_upbound2d_=" << md_.ringbuffer_upbound2d_.transpose() << endl;
 
   for (int i = 0; i < DIME_SIZE; ++i)
   {
-    while (md_.ringbuffer_origin3i_(i) < md_.ringbuffer_lowbound3i_(i))
+    while (md_.ringbuffer_origin2i_(i) < md_.ringbuffer_lowbound2i_(i))
     {
-      md_.ringbuffer_origin3i_(i) += md_.ringbuffer_size3i_(i);
+      md_.ringbuffer_origin2i_(i) += md_.ringbuffer_size2i_(i);
     }
-    while (md_.ringbuffer_origin3i_(i) > md_.ringbuffer_upbound3i_(i))
+    while (md_.ringbuffer_origin2i_(i) > md_.ringbuffer_upbound2i_(i))
     {
-      md_.ringbuffer_origin3i_(i) -= md_.ringbuffer_size3i_(i);
+      md_.ringbuffer_origin2i_(i) -= md_.ringbuffer_size2i_(i);
     }
 
-    while (md_.ringbuffer_inf_origin3i_(i) < md_.ringbuffer_inf_lowbound3i_(i))
+    while (md_.ringbuffer_inf_origin2i_(i) < md_.ringbuffer_inf_lowbound2i_(i))
     {
-      md_.ringbuffer_inf_origin3i_(i) += md_.ringbuffer_inf_size3i_(i);
+      md_.ringbuffer_inf_origin2i_(i) += md_.ringbuffer_inf_size2i_(i);
     }
-    while (md_.ringbuffer_inf_origin3i_(i) > md_.ringbuffer_inf_upbound3i_(i))
+    while (md_.ringbuffer_inf_origin2i_(i) > md_.ringbuffer_inf_upbound2i_(i))
     {
-      md_.ringbuffer_inf_origin3i_(i) -= md_.ringbuffer_inf_size3i_(i);
+      md_.ringbuffer_inf_origin2i_(i) -= md_.ringbuffer_inf_size2i_(i);
     }
   }
 
@@ -148,8 +126,8 @@ void GridMap::initMapBoundary()
 
 void GridMap::clearBuffer(char casein, int bound)
 {
-  for (int x = (casein == 0 ? bound : md_.ringbuffer_lowbound3i_(0)); x <= (casein == 1 ? bound : md_.ringbuffer_upbound3i_(0)); ++x)
-    for (int y = (casein == 2 ? bound : md_.ringbuffer_lowbound3i_(1)); y <= (casein == 3 ? bound : md_.ringbuffer_upbound3i_(1)); ++y)
+  for (int x = (casein == 0 ? bound : md_.ringbuffer_lowbound2i_(0)); x <= (casein == 1 ? bound : md_.ringbuffer_upbound2i_(0)); ++x)
+    for (int y = (casein == 2 ? bound : md_.ringbuffer_lowbound2i_(1)); y <= (casein == 3 ? bound : md_.ringbuffer_upbound2i_(1)); ++y)
       {
         Eigen::Vector2i id_global(x, y);
         int id_buf = globalIdx2BufIdx(id_global);
@@ -175,8 +153,8 @@ void GridMap::clearBuffer(char casein, int bound)
 Eigen::Vector2d GridMap::closetPointInMap(const Eigen::Vector2d &pt, const Eigen::Vector2d &camera_pt)
 {
   Eigen::Vector2d diff = pt - camera_pt;
-  Eigen::Vector2d max_tc = md_.ringbuffer_upbound3d_ - camera_pt;
-  Eigen::Vector2d min_tc = md_.ringbuffer_lowbound3d_ - camera_pt;
+  Eigen::Vector2d max_tc = md_.ringbuffer_upbound2d_ - camera_pt;
+  Eigen::Vector2d min_tc = md_.ringbuffer_lowbound2d_ - camera_pt;
 
   double min_t = 1000000;
 
@@ -208,16 +186,16 @@ void GridMap::testIndexingCost()
   double a = 0;
   int b = 0;
   for (int i = 0; i < 10; ++i)
-    for (int x = md_.ringbuffer_lowbound3i_(0); x <= md_.ringbuffer_upbound3i_(0); ++x)
-      for (int y = md_.ringbuffer_lowbound3i_(1); y <= md_.ringbuffer_upbound3i_(1); ++y)
+    for (int x = md_.ringbuffer_lowbound2i_(0); x <= md_.ringbuffer_upbound2i_(0); ++x)
+      for (int y = md_.ringbuffer_lowbound2i_(1); y <= md_.ringbuffer_upbound2i_(1); ++y)
         {
           b += x + y ;
         }
   Time t1 = Now();
 
   for (int i = 0; i < 10; ++i)
-    for (int x = md_.ringbuffer_lowbound3i_(0); x <= md_.ringbuffer_upbound3i_(0); ++x)
-      for (int y = md_.ringbuffer_lowbound3i_(1); y <= md_.ringbuffer_upbound3i_(1); ++y)
+    for (int x = md_.ringbuffer_lowbound2i_(0); x <= md_.ringbuffer_upbound2i_(0); ++x)
+      for (int y = md_.ringbuffer_lowbound2i_(1); y <= md_.ringbuffer_upbound2i_(1); ++y)
         {
           int id_buf_inf_clr = globalIdx2InfBufIdx(Eigen::Vector2i(x, y)); // 8396us = 7970
           b += id_buf_inf_clr;
@@ -226,8 +204,8 @@ void GridMap::testIndexingCost()
   Time t2 = Now();
 
   for (int i = 0; i < 10; ++i)
-    for (int x = md_.ringbuffer_lowbound3i_(0); x <= md_.ringbuffer_upbound3i_(0); ++x)
-      for (int y = md_.ringbuffer_lowbound3i_(1); y <= md_.ringbuffer_upbound3i_(1); ++y)
+    for (int x = md_.ringbuffer_lowbound2i_(0); x <= md_.ringbuffer_upbound2i_(0); ++x)
+      for (int y = md_.ringbuffer_lowbound2i_(1); y <= md_.ringbuffer_upbound2i_(1); ++y)
         {
           Eigen::Vector2d pos = globalIdx2Pos(Eigen::Vector2i(x, y)); // 6553us = 6127
           a += pos.sum();
@@ -236,16 +214,16 @@ void GridMap::testIndexingCost()
   Time t3 = Now();
 
   for (int i = 0; i < 10; ++i)
-    for (double xd = md_.ringbuffer_lowbound3d_(0); xd <= md_.ringbuffer_upbound3d_(0); xd += mp_.resolution_)
-      for (double yd = md_.ringbuffer_lowbound3d_(1); yd <= md_.ringbuffer_upbound3d_(1); yd += mp_.resolution_)
+    for (double xd = md_.ringbuffer_lowbound2d_(0); xd <= md_.ringbuffer_upbound2d_(0); xd += mp_.resolution_)
+      for (double yd = md_.ringbuffer_lowbound2d_(1); yd <= md_.ringbuffer_upbound2d_(1); yd += mp_.resolution_)
         {
           a += xd + yd ;
         }
   Time t4 = Now();
 
   for (int i = 0; i < 10; ++i)
-    for (double xd = md_.ringbuffer_lowbound3d_(0); xd <= md_.ringbuffer_upbound3d_(0); xd += mp_.resolution_)
-      for (double yd = md_.ringbuffer_lowbound3d_(1); yd <= md_.ringbuffer_upbound3d_(1); yd += mp_.resolution_)
+    for (double xd = md_.ringbuffer_lowbound2d_(0); xd <= md_.ringbuffer_upbound2d_(0); xd += mp_.resolution_)
+      for (double yd = md_.ringbuffer_lowbound2d_(1); yd <= md_.ringbuffer_upbound2d_(1); yd += mp_.resolution_)
         {
           Eigen::Vector2i idx = pos2GlobalIdx(Eigen::Vector2d(xd, yd)); // 7088us = 478us
           a += xd + yd ;
@@ -254,8 +232,8 @@ void GridMap::testIndexingCost()
   Time t5 = Now();
 
   for (int i = 0; i < 10; ++i)
-    for (double xd = md_.ringbuffer_lowbound3d_(0); xd <= md_.ringbuffer_upbound3d_(0); xd += mp_.resolution_)
-      for (double yd = md_.ringbuffer_lowbound3d_(1); yd <= md_.ringbuffer_upbound3d_(1); yd += mp_.resolution_)
+    for (double xd = md_.ringbuffer_lowbound2d_(0); xd <= md_.ringbuffer_upbound2d_(0); xd += mp_.resolution_)
+      for (double yd = md_.ringbuffer_lowbound2d_(1); yd <= md_.ringbuffer_upbound2d_(1); yd += mp_.resolution_)
         {
           int id_buf_inf_clr = globalIdx2InfBufIdx(pos2GlobalIdx(Eigen::Vector2d(xd, yd)));
           a += xd + yd ;

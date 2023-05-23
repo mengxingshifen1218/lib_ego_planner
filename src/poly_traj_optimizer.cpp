@@ -17,7 +17,7 @@ namespace ego_planner
   {
     if (initInnerPts.cols() != (initT.size() - 1))
     {
-      printf("initInnerPts.cols() != (initT.size()-1)");
+      printf("initInnerPts.cols() != (initT.size()-1)\n");
       return false;
     }
 
@@ -26,18 +26,18 @@ namespace ego_planner
     int restart_nums = 0, rebound_times = 0;
     bool flag_force_return, flag_still_unsafe, flag_success, flag_swarm_too_close;
     multitopology_data_.initial_obstacles_avoided = false;
-    wei_swarm_mod_ = wei_swarm_;
 
     // Preparision 2: Trajectory related params
     t_now_ = toSec(Now());
     piece_num_ = initT.size();
     jerkOpt_.reset(iniState, finState, piece_num_);
-    variable_num_ = 4 * (piece_num_ - 1) + 1;
+    variable_num_ = piece_num_ + 2 * (piece_num_ - 1);
     double x_init[variable_num_];
+
     memcpy(x_init, initInnerPts.data(), initInnerPts.size() * sizeof(x_init[0]));
     Eigen::Map<Eigen::VectorXd> Vt(x_init + initInnerPts.size(), initT.size());
     RealT2VirtualT(initT, Vt);
-
+    cout << " variable_num_ " << variable_num_ << " initInnerPts.size() " << initInnerPts.size() << endl;
     // Preparision 3: LBFGS related params
     lbfgs::lbfgs_parameter_t lbfgs_params;
     lbfgs::lbfgs_load_default_parameters(&lbfgs_params);
@@ -56,7 +56,7 @@ namespace ego_planner
       flag_still_unsafe = false;
       flag_success = false;
       flag_swarm_too_close = false;
-
+      cout << "line: " << __LINE__ << " variable_num_ " << variable_num_ << " initInnerPts.size() " << initInnerPts.size() << endl;
       /* ---------- optimize ---------- */
       t1 = Now();
       int result = lbfgs::lbfgs_optimize(
@@ -107,7 +107,7 @@ namespace ego_planner
       else
       {
         PRINTF_COND("iter=%d, time(ms)=%f, error\n", iter_num_, time_ms);
-        printf( "Solver error. Return = %d, %s. Skip this planning.", result, lbfgs::lbfgs_strerror(result));
+        printf("Solver error. Return = %d, %s. Skip this planning.\n", result, lbfgs::lbfgs_strerror(result));
       }
 
     } while ((flag_still_unsafe && restart_nums < 3) ||
@@ -147,7 +147,7 @@ namespace ego_planner
 
           if (pts_check.size() <= 0)
           {
-            printf("Failed to get points list to check (0x02). pts_check.size()=%d", (int)pts_check.size());
+            printf("Failed to get points list to check (0x02). pts_check.size()=%d \n", (int)pts_check.size());
             return false;
           }
           else
@@ -157,7 +157,7 @@ namespace ego_planner
         }
         else
         {
-          printf("Failed to get points list to check (0x01). touch_goal_=%d, pts_check.size()=%d", touch_goal_, (int)pts_check.size());
+          printf("Failed to get points list to check (0x01). touch_goal_=%d, pts_check.size()=%d \n", touch_goal_, (int)pts_check.size());
           pts_check.clear();
           return false;
         }
@@ -261,7 +261,7 @@ namespace ego_planner
           flag_got_end = false;
           if (in_id < 0 || out_id < 0)
           {
-            printf("Should not happen! in_id=%d, out_id=%d", in_id, out_id);
+            printf("Should not happen! in_id=%d, out_id=%d \n", in_id, out_id);
             return CHK_RET::ERR;
           }
           segment_ids.push_back(std::pair<int, int>(in_id, out_id));
@@ -291,11 +291,11 @@ namespace ego_planner
         segment_ids[i].second = segment_ids[i + 1].second;
         segment_ids.erase(segment_ids.begin() + i + 1);
         --i;
-        printf("A corner case 2, I have never exeam it.");
+        printf("A corner case 2, I have never exeam it. \n");
       }
       else
       {
-        printf( "A-star error, force return!");
+        printf("A-star error, force return! \n");
         return CHK_RET::ERR;
       }
     }
@@ -502,7 +502,7 @@ namespace ego_planner
         }
       }
 
-      //step 3
+      // step 3
       if (got_intersection_id >= 0)
       {
         for (int j = got_intersection_id + 1; j <= adjusted_segment_ids[i].second; ++j)
@@ -576,7 +576,7 @@ namespace ego_planner
         }
         if (j < 0) // fail to get the obs free point
         {
-          printf("The drone is in obstacle. It means a crash in real-world.");
+          printf("The drone is in obstacle. It means a crash in real-world. \n");
           in_id = 0;
         }
 
@@ -592,7 +592,7 @@ namespace ego_planner
         }
         if (j >= cps_.cp_size) // fail to get the obs free point
         {
-          printf("Local target in collision, skip this planning.");
+          printf("Local target in collision, skip this planning.\n");
 
           force_stop_type_ = STOP_FOR_ERROR;
           return false;
@@ -621,11 +621,11 @@ namespace ego_planner
           segment_ids[i].second = segment_ids[i + 1].second;
           segment_ids.erase(segment_ids.begin() + i + 1);
           --i;
-          printf("A corner case 2, I have never exeam it.");
+          printf("A corner case 2, I have never exeam it. \n");
         }
         else
         {
-          printf( "A-star error");
+          printf("A-star error \n");
           segment_ids.erase(segment_ids.begin() + i);
           --i;
         }
@@ -719,7 +719,7 @@ namespace ego_planner
           }
         }
 
-        //step 3
+        // step 3
         if (got_intersection_id >= 0)
         {
           for (int j = got_intersection_id + 1; j <= segment_ids[i].second; ++j)
@@ -737,7 +737,7 @@ namespace ego_planner
             }
         }
         else
-          printf( "Failed to generate direction. It doesn't matter.");
+          printf("Failed to generate direction. It doesn't matter. \n");
       }
 
       force_stop_type_ = STOP_FOR_REBOUND;
@@ -747,7 +747,7 @@ namespace ego_planner
     return false;
   }
 
-  bool PolyTrajOptimizer::allowRebound(void) //zxzxzx
+  bool PolyTrajOptimizer::allowRebound(void) // zxzxzx
   {
     // criterion 1
     if (iter_num_ < 3)
@@ -889,7 +889,7 @@ namespace ego_planner
           if (RichInfoSegs[i].first.base_point[j].size() != 1)
           {
             cout << "RichInfoSegs[" << i << "].first.base_point[" << j << "].size()=" << RichInfoSegs[i].first.base_point[j].size() << endl;
-            printf("Wrong number of base_points!!! Should not be happen!.");
+            printf("Wrong number of base_points!!! Should not be happen!.\n");
 
             cout << setprecision(5);
             cout << "cps_" << endl;
@@ -898,7 +898,7 @@ namespace ego_planner
             {
               if (cps_.base_point[temp_i].size() > 1 && cps_.base_point[temp_i].size() < 1000)
               {
-                printf("Should not happen!!!");
+                printf("Should not happen!!!\n");
                 cout << "######" << cps_.points.col(temp_i).transpose() << endl;
                 for (size_t temp_j = 0; temp_j < cps_.base_point[temp_i].size(); temp_j++)
                   cout << "      " << cps_.base_point[temp_i][temp_j].transpose() << " @ " << cps_.direction[temp_i][temp_j].transpose() << endl;
@@ -941,7 +941,7 @@ namespace ego_planner
             }
             if (l > l_upbound)
             {
-              printf( "Can't find the new base points at the opposite within the threshold. i=%d, j=%d", i, j);
+              printf("Can't find the new base points at the opposite within the threshold. i=%d, j=%d \n", i, j);
 
               segments.erase(segments.begin() + i);
               RichInfoSegs.erase(RichInfoSegs.begin() + i);
@@ -958,7 +958,7 @@ namespace ego_planner
           }
           else
           {
-            printf( "base_point and control point are too close!");
+            printf("base_point and control point are too close! \n");
             if (VERBOSE_OUTPUT)
               cout << "base_point=" << RichInfoSegs[i].first.base_point[j][0].transpose() << " control point=" << RichInfoSegs[i].first.points.col(j).transpose() << endl;
 
@@ -1009,7 +1009,7 @@ namespace ego_planner
           }
           if (l > l_upbound)
           {
-            printf( "Can't find the new base points at the opposite within the threshold, 2. i=%d", i);
+            printf("Can't find the new base points at the opposite within the threshold, 2. i=%d \n", i);
 
             segments.erase(segments.begin() + i);
             RichInfoSegs.erase(RichInfoSegs.begin() + i);
@@ -1024,7 +1024,7 @@ namespace ego_planner
         }
         else
         {
-          printf( "base_point and control point are too close!, 2");
+          printf("base_point and control point are too close!, 2");
           if (VERBOSE_OUTPUT)
             cout << "base_point=" << RichInfoSegs[i].first.base_point[0][0].transpose() << " control point=" << RichInfoSegs[i].first.points.col(0).transpose() << endl;
 
@@ -1059,7 +1059,7 @@ namespace ego_planner
         digit_id++;
         if (digit_id >= seg_upbound)
         {
-          printf("Should not happen!!! digit_id=%d, seg_upbound=%d", digit_id, seg_upbound);
+          printf("Should not happen!!! digit_id=%d, seg_upbound=%d \n", digit_id, seg_upbound);
         }
         selection[digit_id]++;
       }
@@ -1110,8 +1110,8 @@ namespace ego_planner
         }
         else
         {
-          printf("Shold not happen!!!!, cp_id=%d, seg_id=%d, segments.front().first=%d, segments.back().second=%d, segments[seg_id].first=%d, segments[seg_id].second=%d",
-                    cp_id, seg_id, segments.front().first, segments.back().second, segments[seg_id].first, segments[seg_id].second);
+          printf("Shold not happen!!!!, cp_id=%d, seg_id=%d, segments.front().first=%d, segments.back().second=%d, segments[seg_id].first=%d, segments[seg_id].second=%d \n",
+                 cp_id, seg_id, segments.front().first, segments.back().second, segments[seg_id].first, segments[seg_id].second);
         }
 
         cp_id++;
@@ -1130,9 +1130,7 @@ namespace ego_planner
   {
     PolyTrajOptimizer *opt = reinterpret_cast<PolyTrajOptimizer *>(func_data);
 
-
     Eigen::Map<const Eigen::MatrixXd> P(x, DIME_SIZE, opt->piece_num_ - 1);
-    // Eigen::VectorXd T(Eigen::VectorXd::Constant(piece_nums, opt->t2T(x[n - 1]))); // same t
     Eigen::Map<const Eigen::VectorXd> t(x + (DIME_SIZE * (opt->piece_num_ - 1)), opt->piece_num_);
     Eigen::Map<Eigen::MatrixXd> gradP(grad, DIME_SIZE, opt->piece_num_ - 1);
     Eigen::Map<Eigen::VectorXd> gradt(grad + (DIME_SIZE * (opt->piece_num_ - 1)), opt->piece_num_);
@@ -1149,12 +1147,10 @@ namespace ego_planner
     opt->initAndGetSmoothnessGradCost2PT(gradT, smoo_cost); // Smoothness cost
 
     opt->addPVAJGradCost2CT(gradT, obs_swarm_feas_qvar_costs, opt->cps_num_prePiece_); // Time int cost
-
     if (opt->allowRebound())
     {
       opt->roughlyCheckConstraintPoints(); // Trajectory rebound
     }
-
     opt->jerkOpt_.getGrad2TP(gradT, gradP); // Gradient prepagation
 
     opt->VirtualTGradCost(T, t, gradT, gradt, time_cost); // Real time back to virtual time
@@ -1324,7 +1320,6 @@ namespace ego_planner
 
       t += jerkOpt_.get_T1()(i);
     }
-
     // quratic variance
     Eigen::MatrixXd gdp;
     double var;
@@ -1463,7 +1458,7 @@ namespace ego_planner
     // double dsqrmean = dsqrsum / N;
     double dquarmean = dquarsum / N;
     var = wei_sqrvar_ * (dquarmean);
-    gdp.resize(3, N + 1);
+    gdp.resize(2, N + 1);
     gdp.setZero();
     for (int i = 0; i <= N; i++)
     {
@@ -1499,7 +1494,7 @@ namespace ego_planner
     var = wei_sqrvar_ * (lsqrm - lm * lm) + 250.0 * M * lm;
     Eigen::VectorXd gdls = wei_sqrvar_ * 2.0 / M * (ls.array() - lm) + 250.0;
     Eigen::MatrixXd gdds = dps.colwise().normalized();
-    gdp.resize(3, N + 1);
+    gdp.resize(2, N + 1);
     gdp.setZero();
     for (int i = 0; i < M; i++)
     {
@@ -1515,7 +1510,6 @@ namespace ego_planner
     cps_num_prePiece_ = 5;
     wei_obs_ = 10000.0;
     wei_obs_soft_ = 5000.0;
-    wei_swarm_ = 10000.0;
     wei_feas_ = 10000.0;
     wei_sqrvar_ = 10000.0;
     wei_time_ = 10.0;
@@ -1524,7 +1518,6 @@ namespace ego_planner
     max_vel_ = 1.5;
     max_acc_ = 6.0;
     max_jer_ = 20.0;
-
   }
 
   void PolyTrajOptimizer::setEnvironment(const GridMap::Ptr &map)

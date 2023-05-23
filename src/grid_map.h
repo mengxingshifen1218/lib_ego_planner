@@ -36,8 +36,8 @@ struct MappingParameters
   bool have_initialized_ = false;
 
   /* map properties */
-  Eigen::Vector2d local_update_range3d_;
-  Eigen::Vector2i local_update_range3i_;
+  Eigen::Vector2d local_update_range2d_;
+  Eigen::Vector2i local_update_range2i_;
   double resolution_, resolution_inv_;
   double obstacles_inflation_;
   int inf_grid_;
@@ -73,20 +73,20 @@ struct MappingParameters
 
 struct MappingData
 {
-  Eigen::Vector2i center_last3i_;
-  Eigen::Vector2i ringbuffer_origin3i_;
-  Eigen::Vector2d ringbuffer_lowbound3d_;
-  Eigen::Vector2i ringbuffer_lowbound3i_;
-  Eigen::Vector2d ringbuffer_upbound3d_;
-  Eigen::Vector2i ringbuffer_upbound3i_;
-  // Eigen::Vector2d ringbuffer_size3d_;
-  Eigen::Vector2i ringbuffer_size3i_;
-  Eigen::Vector2i ringbuffer_inf_origin3i_;
-  Eigen::Vector2d ringbuffer_inf_lowbound3d_;
-  Eigen::Vector2i ringbuffer_inf_lowbound3i_;
-  Eigen::Vector2d ringbuffer_inf_upbound3d_;
-  Eigen::Vector2i ringbuffer_inf_upbound3i_;
-  Eigen::Vector2i ringbuffer_inf_size3i_;
+  Eigen::Vector2i center_last2i_;
+  Eigen::Vector2i ringbuffer_origin2i_;
+  Eigen::Vector2d ringbuffer_lowbound2d_;
+  Eigen::Vector2i ringbuffer_lowbound2i_;
+  Eigen::Vector2d ringbuffer_upbound2d_;
+  Eigen::Vector2i ringbuffer_upbound2i_;
+  // Eigen::Vector2d ringbuffer_size2d_;
+  Eigen::Vector2i ringbuffer_size2i_;
+  Eigen::Vector2i ringbuffer_inf_origin2i_;
+  Eigen::Vector2d ringbuffer_inf_lowbound2d_;
+  Eigen::Vector2i ringbuffer_inf_lowbound2i_;
+  Eigen::Vector2d ringbuffer_inf_upbound2d_;
+  Eigen::Vector2i ringbuffer_inf_upbound2i_;
+  Eigen::Vector2i ringbuffer_inf_size2i_;
 
   // main map data, occupancy of each voxel
 
@@ -235,45 +235,45 @@ inline void GridMap::changeInfBuf(const bool dir, const int inf_buf_idx, const E
 
 inline int GridMap::globalIdx2BufIdx(const Eigen::Vector2i &id)
 {
-  int x_buffer = (id(0) - md_.ringbuffer_origin3i_(0)) % md_.ringbuffer_size3i_(0);
-  int y_buffer = (id(1) - md_.ringbuffer_origin3i_(1)) % md_.ringbuffer_size3i_(1);
+  int x_buffer = (id(0) - md_.ringbuffer_origin2i_(0)) % md_.ringbuffer_size2i_(0);
+  int y_buffer = (id(1) - md_.ringbuffer_origin2i_(1)) % md_.ringbuffer_size2i_(1);
   if (x_buffer < 0)
-    x_buffer += md_.ringbuffer_size3i_(0);
+    x_buffer += md_.ringbuffer_size2i_(0);
   if (y_buffer < 0)
-    y_buffer += md_.ringbuffer_size3i_(1);
+    y_buffer += md_.ringbuffer_size2i_(1);
 
 
-  return md_.ringbuffer_size3i_(0) * y_buffer + x_buffer;
+  return md_.ringbuffer_size2i_(0) * y_buffer + x_buffer;
 }
 
 inline int GridMap::globalIdx2InfBufIdx(const Eigen::Vector2i &id)
 {
-  int x_buffer = (id(0) - md_.ringbuffer_inf_origin3i_(0)) % md_.ringbuffer_inf_size3i_(0);
-  int y_buffer = (id(1) - md_.ringbuffer_inf_origin3i_(1)) % md_.ringbuffer_inf_size3i_(1);
+  int x_buffer = (id(0) - md_.ringbuffer_inf_origin2i_(0)) % md_.ringbuffer_inf_size2i_(0);
+  int y_buffer = (id(1) - md_.ringbuffer_inf_origin2i_(1)) % md_.ringbuffer_inf_size2i_(1);
   if (x_buffer < 0)
-    x_buffer += md_.ringbuffer_inf_size3i_(0);
+    x_buffer += md_.ringbuffer_inf_size2i_(0);
   if (y_buffer < 0)
-    y_buffer += md_.ringbuffer_inf_size3i_(1);
+    y_buffer += md_.ringbuffer_inf_size2i_(1);
 
 
-  return md_.ringbuffer_inf_size3i_(0) * y_buffer + x_buffer;
+  return md_.ringbuffer_inf_size2i_(0) * y_buffer + x_buffer;
 }
 
 inline Eigen::Vector2i GridMap::BufIdx2GlobalIdx(size_t address)
 {
 
-  const int ringbuffer_xysize = md_.ringbuffer_size3i_(0) * md_.ringbuffer_size3i_(1);
+  const int ringbuffer_xysize = md_.ringbuffer_size2i_(0) * md_.ringbuffer_size2i_(1);
   int zid_in_buffer = address / ringbuffer_xysize;
   address %= ringbuffer_xysize;
-  int yid_in_buffer = address / md_.ringbuffer_size3i_(0);
-  int xid_in_buffer = address % md_.ringbuffer_size3i_(0);
+  int yid_in_buffer = address / md_.ringbuffer_size2i_(0);
+  int xid_in_buffer = address % md_.ringbuffer_size2i_(0);
 
-  int xid_global = xid_in_buffer + md_.ringbuffer_origin3i_(0);
-  if (xid_global > md_.ringbuffer_upbound3i_(0))
-    xid_global -= md_.ringbuffer_size3i_(0);
-  int yid_global = yid_in_buffer + md_.ringbuffer_origin3i_(1);
-  if (yid_global > md_.ringbuffer_upbound3i_(1))
-    yid_global -= md_.ringbuffer_size3i_(1);
+  int xid_global = xid_in_buffer + md_.ringbuffer_origin2i_(0);
+  if (xid_global > md_.ringbuffer_upbound2i_(0))
+    xid_global -= md_.ringbuffer_size2i_(0);
+  int yid_global = yid_in_buffer + md_.ringbuffer_origin2i_(1);
+  if (yid_global > md_.ringbuffer_upbound2i_(1))
+    yid_global -= md_.ringbuffer_size2i_(1);
 
   return Eigen::Vector2i(xid_global, yid_global);
 }
@@ -281,18 +281,18 @@ inline Eigen::Vector2i GridMap::BufIdx2GlobalIdx(size_t address)
 inline Eigen::Vector2i GridMap::infBufIdx2GlobalIdx(size_t address)
 {
 
-  const int ringbuffer_xysize = md_.ringbuffer_inf_size3i_(0) * md_.ringbuffer_inf_size3i_(1);
+  const int ringbuffer_xysize = md_.ringbuffer_inf_size2i_(0) * md_.ringbuffer_inf_size2i_(1);
   int zid_in_buffer = address / ringbuffer_xysize;
   address %= ringbuffer_xysize;
-  int yid_in_buffer = address / md_.ringbuffer_inf_size3i_(0);
-  int xid_in_buffer = address % md_.ringbuffer_inf_size3i_(0);
+  int yid_in_buffer = address / md_.ringbuffer_inf_size2i_(0);
+  int xid_in_buffer = address % md_.ringbuffer_inf_size2i_(0);
 
-  int xid_global = xid_in_buffer + md_.ringbuffer_inf_origin3i_(0);
-  if (xid_global > md_.ringbuffer_inf_upbound3i_(0))
-    xid_global -= md_.ringbuffer_inf_size3i_(0);
-  int yid_global = yid_in_buffer + md_.ringbuffer_inf_origin3i_(1);
-  if (yid_global > md_.ringbuffer_inf_upbound3i_(1))
-    yid_global -= md_.ringbuffer_inf_size3i_(1);
+  int xid_global = xid_in_buffer + md_.ringbuffer_inf_origin2i_(0);
+  if (xid_global > md_.ringbuffer_inf_upbound2i_(0))
+    xid_global -= md_.ringbuffer_inf_size2i_(0);
+  int yid_global = yid_in_buffer + md_.ringbuffer_inf_origin2i_(1);
+  if (yid_global > md_.ringbuffer_inf_upbound2i_(1))
+    yid_global -= md_.ringbuffer_inf_size2i_(1);
 
   return Eigen::Vector2i(xid_global, yid_global);
 }
@@ -316,11 +316,11 @@ inline int GridMap::getInflateOccupancy(Eigen::Vector2d pos)
 
 inline bool GridMap::isInBuf(const Eigen::Vector2d &pos)
 {
-  if (pos(0) < md_.ringbuffer_lowbound3d_(0) || pos(1) < md_.ringbuffer_lowbound3d_(1) )
+  if (pos(0) < md_.ringbuffer_lowbound2d_(0) || pos(1) < md_.ringbuffer_lowbound2d_(1) )
   {
     return false;
   }
-  if (pos(0) > md_.ringbuffer_upbound3d_(0) || pos(1) > md_.ringbuffer_upbound3d_(1) )
+  if (pos(0) > md_.ringbuffer_upbound2d_(0) || pos(1) > md_.ringbuffer_upbound2d_(1) )
   {
     return false;
   }
@@ -329,11 +329,11 @@ inline bool GridMap::isInBuf(const Eigen::Vector2d &pos)
 
 inline bool GridMap::isInBuf(const Eigen::Vector2i &idx)
 {
-  if (idx(0) < md_.ringbuffer_lowbound3i_(0) || idx(1) < md_.ringbuffer_lowbound3i_(1) )
+  if (idx(0) < md_.ringbuffer_lowbound2i_(0) || idx(1) < md_.ringbuffer_lowbound2i_(1) )
   {
     return false;
   }
-  if (idx(0) > md_.ringbuffer_upbound3i_(0) || idx(1) > md_.ringbuffer_upbound3i_(1) )
+  if (idx(0) > md_.ringbuffer_upbound2i_(0) || idx(1) > md_.ringbuffer_upbound2i_(1) )
   {
     return false;
   }
@@ -342,11 +342,11 @@ inline bool GridMap::isInBuf(const Eigen::Vector2i &idx)
 
 inline bool GridMap::isInInfBuf(const Eigen::Vector2d &pos)
 {
-  if (pos(0) < md_.ringbuffer_inf_lowbound3d_(0) || pos(1) < md_.ringbuffer_inf_lowbound3d_(1) )
+  if (pos(0) < md_.ringbuffer_inf_lowbound2d_(0) || pos(1) < md_.ringbuffer_inf_lowbound2d_(1) )
   {
     return false;
   }
-  if (pos(0) > md_.ringbuffer_inf_upbound3d_(0) || pos(1) > md_.ringbuffer_inf_upbound3d_(1))
+  if (pos(0) > md_.ringbuffer_inf_upbound2d_(0) || pos(1) > md_.ringbuffer_inf_upbound2d_(1))
   {
     return false;
   }
@@ -355,11 +355,11 @@ inline bool GridMap::isInInfBuf(const Eigen::Vector2d &pos)
 
 inline bool GridMap::isInInfBuf(const Eigen::Vector2i &idx)
 {
-  if (idx(0) < md_.ringbuffer_inf_lowbound3i_(0) || idx(1) < md_.ringbuffer_inf_lowbound3i_(1) )
+  if (idx(0) < md_.ringbuffer_inf_lowbound2i_(0) || idx(1) < md_.ringbuffer_inf_lowbound2i_(1) )
   {
     return false;
   }
-  if (idx(0) > md_.ringbuffer_inf_upbound3i_(0) || idx(1) > md_.ringbuffer_inf_upbound3i_(1))
+  if (idx(0) > md_.ringbuffer_inf_upbound2i_(0) || idx(1) > md_.ringbuffer_inf_upbound2i_(1))
   {
     return false;
   }
