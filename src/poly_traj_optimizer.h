@@ -68,16 +68,15 @@ namespace ego_planner
     GridMap::Ptr grid_map_;
     AStar::Ptr a_star_;
     poly_traj::MinJerkOpt jerkOpt_;
-    SwarmTrajData *swarm_trajs_{NULL}; // Can not use shared_ptr and no need to free
+
     ConstraintPoints cps_;
     // PtsChk_t pts_check_;
 
-    int drone_id_;
     int cps_num_prePiece_;   // number of distinctive constraint points each piece
     int variable_num_;       // optimization variables
     int piece_num_;          // poly traj piece numbers
     int iter_num_;           // iteration of the solver
-    std::vector<double> min_ellip_dist2_; // min trajectory distance in swarm
+
     bool touch_goal_;
     struct MultitopologyData_t
     {
@@ -98,7 +97,7 @@ namespace ego_planner
     double wei_feas_;                                             // feasibility weight
     double wei_sqrvar_;                                           // squared variance weight
     double wei_time_;                                             // time weight
-    double obs_clearance_, obs_clearance_soft_, swarm_clearance_; // safe distance
+    double obs_clearance_, obs_clearance_soft_;                   // safe distance
     double max_vel_, max_acc_, max_jer_;                          // dynamic limits
 
     double t_now_;
@@ -118,7 +117,7 @@ namespace ego_planner
     void setParam();
     void setEnvironment(const GridMap::Ptr &map);
     void setControlPoints(const Eigen::MatrixXd &points);
-    void setSwarmTrajs(SwarmTrajData *swarm_trajs_ptr);
+
     void setDroneId(const int drone_id);
     void setIfTouchGoal(const bool touch_goal);
     void setConstraintPoints(ConstraintPoints cps);
@@ -128,7 +127,6 @@ namespace ego_planner
     inline const ConstraintPoints &getControlPoints(void) { return cps_; }
     inline const poly_traj::MinJerkOpt &getMinJerkOpt(void) { return jerkOpt_; }
     inline int get_cps_num_prePiece_(void) { return cps_num_prePiece_; }
-    inline double get_swarm_clearance_(void) { return swarm_clearance_; }
 
     /* main planning API */
     bool optimizeTrajectory(const Eigen::MatrixXd &iniState, const Eigen::MatrixXd &finState,
@@ -182,15 +180,6 @@ namespace ego_planner
                            const Eigen::Vector3d &p,
                            Eigen::Vector3d &gradp,
                            double &costp);
-
-    bool swarmGradCostP(const int i_dp,
-                        const double t,
-                        const Eigen::Vector3d &p,
-                        const Eigen::Vector3d &v,
-                        Eigen::Vector3d &gradp,
-                        double &gradt,
-                        double &grad_prev_t,
-                        double &costp);
 
     bool feasibilityGradCostV(const Eigen::Vector3d &v,
                               Eigen::Vector3d &gradv,

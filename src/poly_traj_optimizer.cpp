@@ -37,7 +37,6 @@ namespace ego_planner
     memcpy(x_init, initInnerPts.data(), initInnerPts.size() * sizeof(x_init[0]));
     Eigen::Map<Eigen::VectorXd> Vt(x_init + initInnerPts.size(), initT.size());
     RealT2VirtualT(initT, Vt);
-    min_ellip_dist2_.resize(swarm_trajs_->size());
 
     // Preparision 3: LBFGS related params
     lbfgs::lbfgs_parameter_t lbfgs_params;
@@ -84,32 +83,19 @@ namespace ego_planner
 
         /* double check: fine collision check */
         std::vector<std::pair<int, int>> segments_nouse;
-        for (size_t i = 0; i < swarm_trajs_->size(); ++i)
-        {
-          flag_swarm_too_close |= min_ellip_dist2_[i] < pow((swarm_clearance_ + swarm_trajs_->at(i).des_clearance) * 1.25, 2);
-        }
-        if (!flag_swarm_too_close)
-        {
-          if (finelyCheckAndSetConstraintPoints(segments_nouse, jerkOpt_, false) == CHK_RET::OBS_FREE)
-          {
 
-            flag_success = true;
-            PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f,total_t(ms)=%5.3f,cost=%5.3f\n\033[0m", iter_num_, time_ms, total_time_ms, final_cost);
-          }
-          else
-          {
-            // A not-blank return value means collision to obstales
-            flag_still_unsafe = true;
-            restart_nums++;
-            PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f, fine check collided, keep optimizing\n\033[0m", iter_num_, time_ms);
-          }
+        if (finelyCheckAndSetConstraintPoints(segments_nouse, jerkOpt_, false) == CHK_RET::OBS_FREE)
+        {
+
+          flag_success = true;
+          PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f,total_t(ms)=%5.3f,cost=%5.3f\n\033[0m", iter_num_, time_ms, total_time_ms, final_cost);
         }
         else
         {
-          PRINTF_COND("Swarm clearance not satisfied, keep optimizing. iter=%d,time(ms)=%5.3f, wei_swarm_mod_=%f\n", iter_num_, time_ms, wei_swarm_mod_);
+          // A not-blank return value means collision to obstales
           flag_still_unsafe = true;
           restart_nums++;
-          wei_swarm_mod_ *= 2;
+          PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f, fine check collided, keep optimizing\n\033[0m", iter_num_, time_ms);
         }
       }
       else if (result == lbfgs::LBFGSERR_CANCELED)
@@ -1144,7 +1130,6 @@ namespace ego_planner
   {
     PolyTrajOptimizer *opt = reinterpret_cast<PolyTrajOptimizer *>(func_data);
 
-    fill(opt->min_ellip_dist2_.begin(), opt->min_ellip_dist2_.end(), std::numeric_limits<double>::max());
 
     Eigen::Map<const Eigen::MatrixXd> P(x, 3, opt->piece_num_ - 1);
     // Eigen::VectorXd T(Eigen::VectorXd::Constant(piece_nums, opt->t2T(x[n - 1]))); // same t
@@ -1300,21 +1285,6 @@ namespace ego_planner
           costs(0) += omg * step * costp;
         }
 
-        // swarm
-        double gradt, grad_prev_t;
-        if (swarmGradCostP(i_dp, t + step * j, pos, vel, gradp, gradt, grad_prev_t, costp))
-        {
-          gradViolaPc = beta0 * gradp.transpose();
-          gradViolaPt = alpha * gradt;
-          jerkOpt_.get_gdC().block<6, 3>(i * 6, 0) += omg * step * gradViolaPc;
-          gdT(i) += omg * (costp / K + step * gradViolaPt);
-          if (i > 0)
-          {
-            gdT.head(i).array() += omg * step * grad_prev_t;
-          }
-          costs(1) += omg * step * costp;
-        }
-
         // feasibility
         if (feasibilityGradCostV(vel, gradv, costv))
         {
@@ -1439,79 +1409,6 @@ namespace ego_planner
     return ret;
   }
 
-  bool PolyTrajOptimizer::swarmGradCostP(const int i_dp,
-                                         const double t,
-                                         const Eigen::Vector3d &p,
-                                         const Eigen::Vector3d &v,
-                                         Eigen::Vector3d &gradp,
-                                         double &gradt,
-                                         double &grad_prev_t,
-                                         double &costp)
-  {
-    if (i_dp <= 0 || i_dp > ConstraintPoints::two_thirds_id(cps_.points, touch_goal_)) // only apply to first 2/3
-      return false;
-
-    bool ret = false;
-
-    gradp.setZero();
-    gradt = 0;
-    grad_prev_t = 0;
-    costp = 0;
-
-    constexpr double a = 2.0, b = 1.0, inv_a2 = 1 / a / a, inv_b2 = 1 / b / b;
-
-    for (size_t id = 0; id < swarm_trajs_->size(); id++)
-    {
-      if ((swarm_trajs_->at(id).drone_id < 0) || swarm_trajs_->at(id).drone_id == drone_id_)
-      {
-        continue;
-      }
-
-      double traj_i_satrt_time = swarm_trajs_->at(id).start_time;
-      double pt_time = (t_now_ - traj_i_satrt_time) + t; // never assign a high-precision golbal time to a double directly!
-      const double CLEARANCE = (swarm_clearance_ + swarm_trajs_->at(id).des_clearance) * 1.5; // 1.5 is to compensate slight constraint violation
-      const double CLEARANCE2 = CLEARANCE * CLEARANCE;
-
-      Eigen::Vector3d swarm_p, swarm_v;
-      if (pt_time < swarm_trajs_->at(id).duration)
-      {
-        swarm_p = swarm_trajs_->at(id).traj.getPos(pt_time);
-        swarm_v = swarm_trajs_->at(id).traj.getVel(pt_time);
-      }
-      else
-      {
-        double exceed_time = pt_time - swarm_trajs_->at(id).duration;
-        swarm_v = swarm_trajs_->at(id).traj.getVel(swarm_trajs_->at(id).duration);
-        swarm_p = swarm_trajs_->at(id).traj.getPos(swarm_trajs_->at(id).duration) +
-                  exceed_time * swarm_v;
-      }
-      Eigen::Vector3d dist_vec = p - swarm_p;
-      double ellip_dist2 = dist_vec(2) * dist_vec(2) * inv_a2 + (dist_vec(0) * dist_vec(0) + dist_vec(1) * dist_vec(1)) * inv_b2;
-      double dist2_err = CLEARANCE2 - ellip_dist2;
-      double dist2_err2 = dist2_err * dist2_err;
-      double dist2_err3 = dist2_err2 * dist2_err;
-
-      if (dist2_err3 > 0)
-      {
-        ret = true;
-
-        costp += wei_swarm_mod_ * dist2_err3;
-
-        Eigen::Vector3d dJ_dP = wei_swarm_mod_ * 3 * dist2_err2 * (-2) * Eigen::Vector3d(inv_b2 * dist_vec(0), inv_b2 * dist_vec(1), inv_a2 * dist_vec(2));
-        gradp += dJ_dP;
-        gradt += dJ_dP.dot(v - swarm_v);
-        grad_prev_t += dJ_dP.dot(-swarm_v);
-      }
-
-      if (min_ellip_dist2_[id] > ellip_dist2)
-      {
-        min_ellip_dist2_[id] = ellip_dist2;
-      }
-    }
-
-    return ret;
-  }
-
   bool PolyTrajOptimizer::feasibilityGradCostV(const Eigen::Vector3d &v,
                                                Eigen::Vector3d &gradv,
                                                double &costv)
@@ -1625,7 +1522,6 @@ namespace ego_planner
     // nh.param("optimization/weight_time", wei_time_, -1.0);
     // nh.param("optimization/obstacle_clearance", obs_clearance_, -1.0);
     // nh.param("optimization/obstacle_clearance_soft", obs_clearance_soft_, -1.0);
-    // nh.param("optimization/swarm_clearance", swarm_clearance_, -1.0);
     // nh.param("optimization/max_vel", max_vel_, -1.0);
     // nh.param("optimization/max_acc", max_acc_, -1.0);
     // nh.param("optimization/max_jer", max_jer_, -1.0);
@@ -1638,7 +1534,6 @@ namespace ego_planner
     wei_time_ = 10.0;
     obs_clearance_ = 0.1;
     obs_clearance_soft_ = 0.5;
-    swarm_clearance_ = 0.15;
     max_vel_ = 1.5;
     max_acc_ = 6.0;
     max_jer_ = 20.0;
@@ -1657,10 +1552,6 @@ namespace ego_planner
   {
     cps_.points = points;
   }
-
-  void PolyTrajOptimizer::setSwarmTrajs(SwarmTrajData *swarm_trajs_ptr) { swarm_trajs_ = swarm_trajs_ptr; }
-
-  void PolyTrajOptimizer::setDroneId(const int drone_id) { drone_id_ = drone_id; }
 
   void PolyTrajOptimizer::setIfTouchGoal(const bool touch_goal) { touch_goal_ = touch_goal; }
 

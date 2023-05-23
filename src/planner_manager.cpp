@@ -21,7 +21,6 @@ namespace ego_planner
     pp_.polyTraj_piece_length = 1.5;
     pp_.planning_horizon_ = 7.5;
     pp_.use_multitopology_trajs = false;
-    pp_.drone_id = 0;
 
     grid_map_.reset(new GridMap);
     grid_map_->initMap();
@@ -30,9 +29,6 @@ namespace ego_planner
     ploy_traj_opt_->setParam();
     ploy_traj_opt_->setEnvironment(grid_map_);
 
-
-    ploy_traj_opt_->setSwarmTrajs(&traj_.swarm_traj);
-    ploy_traj_opt_->setDroneId(pp_.drone_id);
   }
 
   bool EGOPlannerManager::reboundReplan(
@@ -276,14 +272,14 @@ namespace ego_planner
       }
 
       /* the trajectory time system is a little bit complicated... */
-      double passed_t_on_lctraj = toSec(Now()) - traj_.local_traj.start_time;
-      double t_to_lc_end = traj_.local_traj.duration - passed_t_on_lctraj;
-      if (t_to_lc_end < 0)
+      double passed_t_on_local_traj = toSec(Now()) - traj_.local_traj.start_time;
+      double t_to_local_end = traj_.local_traj.duration - passed_t_on_local_traj;
+      if (t_to_local_end < 0)
       {
-        printf("t_to_lc_end < 0, exit and wait for another call.");
+        printf("t_to_local_end < 0, exit and wait for another call.");
         return false;
       }
-      double t_to_lc_tgt = t_to_lc_end +
+      double t_to_local_target = t_to_local_end +
                            (traj_.global_traj.global_t_local_target - traj_.global_traj.global_t_last_local_target);
       int piece_nums = ceil((start_pt - local_target_pt).norm() / pp_.polyTraj_piece_length);
       if (piece_nums < 2)
@@ -291,25 +287,25 @@ namespace ego_planner
 
       Eigen::Matrix3d headState, tailState;
       Eigen::MatrixXd innerPs(3, piece_nums - 1);
-      Eigen::VectorXd piece_dur_vec = Eigen::VectorXd::Constant(piece_nums, t_to_lc_tgt / piece_nums);
+      Eigen::VectorXd piece_dur_vec = Eigen::VectorXd::Constant(piece_nums, t_to_local_target / piece_nums);
       headState << start_pt, start_vel, start_acc;
       tailState << local_target_pt, local_target_vel, Eigen::Vector3d::Zero();
 
       double t = piece_dur_vec(0);
       for (int i = 0; i < piece_nums - 1; ++i)
       {
-        if (t < t_to_lc_end)
+        if (t < t_to_local_end)
         {
-          innerPs.col(i) = traj_.local_traj.traj.getPos(t + passed_t_on_lctraj);
+          innerPs.col(i) = traj_.local_traj.traj.getPos(t + passed_t_on_local_traj);
         }
-        else if (t <= t_to_lc_tgt)
+        else if (t <= t_to_local_target)
         {
-          double glb_t = t - t_to_lc_end + traj_.global_traj.global_t_last_local_target - traj_.global_traj.global_start_time;
+          double glb_t = t - t_to_local_end + traj_.global_traj.global_t_last_local_target - traj_.global_traj.global_start_time;
           innerPs.col(i) = traj_.global_traj.traj.getPos(glb_t);
         }
         else
         {
-          printf("Should not happen! x_x 0x88 t=%.2f, t_to_lc_end=%.2f, t_to_lc_tgt=%.2f", t, t_to_lc_end, t_to_lc_tgt);
+          printf("Should not happen! x_x 0x88 t=%.2f, t_to_local_end=%.2f, t_to_local_target=%.2f", t, t_to_local_end, t_to_local_target);
         }
 
         t += piece_dur_vec(i + 1);
@@ -395,32 +391,6 @@ namespace ego_planner
     return true;
   }
 
-  bool EGOPlannerManager::checkCollision(int drone_id)
-  {
-    if (traj_.local_traj.start_time < 1e9) // It means my first planning has not started
-      return false;
-    if (traj_.swarm_traj[drone_id].drone_id != drone_id) // The trajectory is invalid
-      return false;
-
-    double my_traj_start_time = traj_.local_traj.start_time;
-    double other_traj_start_time = traj_.swarm_traj[drone_id].start_time;
-
-    double t_start = max(my_traj_start_time, other_traj_start_time);
-    double t_end = min(my_traj_start_time + traj_.local_traj.duration * 2 / 3,
-                       other_traj_start_time + traj_.swarm_traj[drone_id].duration);
-
-    for (double t = t_start; t < t_end; t += 0.03)
-    {
-      if ((traj_.local_traj.traj.getPos(t - my_traj_start_time) -
-           traj_.swarm_traj[drone_id].traj.getPos(t - other_traj_start_time))
-              .norm() < (getSwarmClearance() + traj_.swarm_traj[drone_id].des_clearance) )
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   bool EGOPlannerManager::planGlobalTrajWaypoints(
       const Eigen::Vector3d &start_pos, const Eigen::Vector3d &start_vel,

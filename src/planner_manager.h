@@ -45,9 +45,9 @@ namespace ego_planner
         Eigen::Vector3d &local_target_pos, Eigen::Vector3d &local_target_vel,
         bool &touch_goal);
     bool EmergencyStop(Eigen::Vector3d stop_pos);
-    bool checkCollision(int drone_id);
+
     bool setLocalTrajFromOpt(const poly_traj::MinJerkOpt &opt, const bool touch_goal);
-    inline double getSwarmClearance(void) { return ploy_traj_opt_->get_swarm_clearance_(); }
+
     inline int getCpsNumPrePiece(void) { return ploy_traj_opt_->get_cps_num_prePiece_(); }
     // inline PtsChk_t getPtsCheck(void) { return ploy_traj_opt_->get_pts_check_(); }
 
