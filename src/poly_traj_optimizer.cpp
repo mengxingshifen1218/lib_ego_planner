@@ -611,6 +611,7 @@ namespace ego_planner
       {
         /*** a star search ***/
         Eigen::Vector2d in(cps_.points.col(segment_ids[i].second)), out(cps_.points.col(segment_ids[i].first));
+
         ASTAR_RET ret = a_star_->AstarSearch(/*(in-out).norm()/10+0.05*/ grid_map_->getResolution(), in, out);
         if (ret == ASTAR_RET::SUCCESS)
         {

@@ -241,7 +241,7 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector2d start_pt, Vector2d
                 }
             }
         auto time_2 = Now();
-        if ((time_2 - time_1).count() > 0.2)
+        if ((time_2 - time_1).count() / 1e9 > 0.2)
         {
             printf("Failed in A star path searching !!! 0.2 seconds time limit exceeded.");
             return ASTAR_RET::SEARCH_ERR;

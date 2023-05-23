@@ -301,7 +301,10 @@ inline int GridMap::getOccupancy(Eigen::Vector2d pos)
 {
   if (!isInBuf(pos))
     return 0;
-
+  if(pos[0] > 1.5 && pos[0] < 2.0 && pos[1] > 1.5 && pos[1] < 2.0 ){
+    // cout<<"getOccupancy obstacle"<<endl;
+    return GRID_MAP_OBS_FLAG;
+  }
 
   return md_.occupancy_buffer_[globalIdx2BufIdx(pos2GlobalIdx(pos))] > mp_.min_occupancy_log_ ? 1 : 0;
 }
@@ -309,8 +312,15 @@ inline int GridMap::getOccupancy(Eigen::Vector2d pos)
 inline int GridMap::getInflateOccupancy(Eigen::Vector2d pos)
 {
   if (!isInInfBuf(pos))
+  {
     return 0;
-
+  }
+    
+  // TODO here is just for test
+  if(pos[0] > 1.0 && pos[0] < 2.0 && pos[1] > 1.0 && pos[1] < 2.0 ){
+    // cout<<"getInflateOccupancy obstacle"<<endl;
+    return GRID_MAP_OBS_FLAG;
+  }
   return int(md_.occupancy_buffer_inflate_[globalIdx2InfBufIdx(pos2GlobalIdx(pos))]);
 }
 

@@ -170,6 +170,9 @@ namespace ego_planner
       setLocalTrajFromOpt(best_MJO, touch_goal);
       cstr_pts = best_MJO.getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
       // visualization_->displayOptimalList(cstr_pts, 0);
+      for(int idx = 0; idx < (int)cstr_pts.cols(); idx++){
+        cout<<"idx: "<< idx<< " "<<cstr_pts.col(idx).transpose()<<endl;
+      }
 
       continous_failures_count_ = 0;
     }

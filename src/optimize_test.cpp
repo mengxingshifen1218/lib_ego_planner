@@ -67,7 +67,7 @@ int main()
     start_vel_ = Eigen::Vector2d(0.0, 0.0);
     start_acc_ = Eigen::Vector2d(0.0, 0.0);
 
-    final_goal_ = Eigen::Vector2d(4.0, 5.0);
+    final_goal_ = Eigen::Vector2d(4.0, 4.0);
     Time start = Now();
 
     planFromGlobalTraj(1);

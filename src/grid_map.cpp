@@ -4,7 +4,7 @@ void GridMap::initMap()
 {
 
   /* get parameter */
-  
+
   mp_.resolution_ = 0.1;
   mp_.local_update_range2d_(0) = 5.5;
   mp_.local_update_range2d_(1) = 5.5;
@@ -55,6 +55,9 @@ void GridMap::initMap()
 
   md_.flag_have_ever_received_depth_ = false;
   md_.flag_depth_odom_timeout_ = false;
+
+
+  initMapBoundary();
 }
 
 
@@ -96,7 +99,7 @@ void GridMap::initMapBoundary()
   md_.ringbuffer_inf_upbound2i_ = md_.ringbuffer_upbound2i_ + inf_grid2i;
   md_.ringbuffer_inf_upbound2d_ = md_.ringbuffer_upbound2d_ + inf_grid2d;
 
-  // cout << "md_.ringbuffer_lowbound2i_=" << md_.ringbuffer_lowbound2i_.transpose() << " md_.ringbuffer_lowbound2d_=" << md_.ringbuffer_lowbound2d_.transpose() << " md_.ringbuffer_upbound2i_=" << md_.ringbuffer_upbound2i_.transpose() << " md_.ringbuffer_upbound2d_=" << md_.ringbuffer_upbound2d_.transpose() << endl;
+  cout << "md_.ringbuffer_lowbound2i_=" << md_.ringbuffer_lowbound2i_.transpose() << " md_.ringbuffer_lowbound2d_=" << md_.ringbuffer_lowbound2d_.transpose() << " md_.ringbuffer_upbound2i_=" << md_.ringbuffer_upbound2i_.transpose() << " md_.ringbuffer_upbound2d_=" << md_.ringbuffer_upbound2d_.transpose() << endl;
 
   for (int i = 0; i < DIME_SIZE; ++i)
   {
