@@ -17,8 +17,8 @@ namespace ego_planner
   public:
     int cp_size; // deformation points
     Eigen::MatrixXd points;
-    std::vector<std::vector<Eigen::Vector3d>> base_point; // The point at the statrt of the direction vector (collision point)
-    std::vector<std::vector<Eigen::Vector3d>> direction;  // Direction vector, must be normalized.
+    std::vector<std::vector<Eigen::Vector2d>> base_point; // The point at the statrt of the direction vector (collision point)
+    std::vector<std::vector<Eigen::Vector2d>> direction;  // Direction vector, must be normalized.
     std::vector<bool> flag_temp;                          // A flag that used in many places. Initialize it everytime before using it.
 
     void resize_cp(const int size_set)
@@ -177,20 +177,20 @@ namespace ego_planner
     void addPVAJGradCost2CT(EIGENVEC &gdT, Eigen::VectorXd &costs, const int &K);
 
     bool obstacleGradCostP(const int i_dp,
-                           const Eigen::Vector3d &p,
-                           Eigen::Vector3d &gradp,
+                           const Eigen::Vector2d &p,
+                           Eigen::Vector2d &gradp,
                            double &costp);
 
-    bool feasibilityGradCostV(const Eigen::Vector3d &v,
-                              Eigen::Vector3d &gradv,
+    bool feasibilityGradCostV(const Eigen::Vector2d &v,
+                              Eigen::Vector2d &gradv,
                               double &costv);
 
-    bool feasibilityGradCostA(const Eigen::Vector3d &a,
-                              Eigen::Vector3d &grada,
+    bool feasibilityGradCostA(const Eigen::Vector2d &a,
+                              Eigen::Vector2d &grada,
                               double &costa);
 
-    bool feasibilityGradCostJ(const Eigen::Vector3d &j,
-                              Eigen::Vector3d &gradj,
+    bool feasibilityGradCostJ(const Eigen::Vector2d &j,
+                              Eigen::Vector2d &gradj,
                               double &costj);
 
     void distanceSqrVarianceWithGradCost2p(const Eigen::MatrixXd &ps,

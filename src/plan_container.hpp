@@ -10,7 +10,7 @@ using std::vector;
 namespace ego_planner
 {
 
-  typedef std::vector<std::vector<std::pair<double, Eigen::Vector3d>>> PtsChk_t;
+  typedef std::vector<std::vector<std::pair<double, Eigen::Vector2d>>> PtsChk_t;
 
   struct GlobalTrajData
   {
@@ -37,7 +37,7 @@ namespace ego_planner
     double duration;   // delta time, s
     double start_time; // world time, s
     double end_time;   // world time, s
-    Eigen::Vector3d start_pos;
+    Eigen::Vector2d start_pos;
     double des_clearance;
 
   };

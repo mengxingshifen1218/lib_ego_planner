@@ -26,25 +26,25 @@ namespace ego_planner
     /* main planning interface */
     void initPlanModules();
     bool computeInitState(
-        const Eigen::Vector3d &start_pt, const Eigen::Vector3d &start_vel,
-        const Eigen::Vector3d &start_acc, const Eigen::Vector3d &local_target_pt,
-        const Eigen::Vector3d &local_target_vel, const bool flag_polyInit,
+        const Eigen::Vector2d &start_pt, const Eigen::Vector2d &start_vel,
+        const Eigen::Vector2d &start_acc, const Eigen::Vector2d &local_target_pt,
+        const Eigen::Vector2d &local_target_vel, const bool flag_polyInit,
         const bool flag_randomPolyTraj, const double &ts, poly_traj::MinJerkOpt &initMJO);
     bool reboundReplan(
-        const Eigen::Vector3d &start_pt, const Eigen::Vector3d &start_vel,
-        const Eigen::Vector3d &start_acc, const Eigen::Vector3d &end_pt,
-        const Eigen::Vector3d &end_vel, const bool flag_polyInit,
+        const Eigen::Vector2d &start_pt, const Eigen::Vector2d &start_vel,
+        const Eigen::Vector2d &start_acc, const Eigen::Vector2d &end_pt,
+        const Eigen::Vector2d &end_vel, const bool flag_polyInit,
         const bool flag_randomPolyTraj, const bool touch_goal);
     bool planGlobalTrajWaypoints(
-        const Eigen::Vector3d &start_pos, const Eigen::Vector3d &start_vel,
-        const Eigen::Vector3d &start_acc, const std::vector<Eigen::Vector3d> &waypoints,
-        const Eigen::Vector3d &end_vel, const Eigen::Vector3d &end_acc);
+        const Eigen::Vector2d &start_pos, const Eigen::Vector2d &start_vel,
+        const Eigen::Vector2d &start_acc, const std::vector<Eigen::Vector2d> &waypoints,
+        const Eigen::Vector2d &end_vel, const Eigen::Vector2d &end_acc);
     void getLocalTarget(
         const double planning_horizon,
-        const Eigen::Vector3d &start_pt, const Eigen::Vector3d &global_end_pt,
-        Eigen::Vector3d &local_target_pos, Eigen::Vector3d &local_target_vel,
+        const Eigen::Vector2d &start_pt, const Eigen::Vector2d &global_end_pt,
+        Eigen::Vector2d &local_target_pos, Eigen::Vector2d &local_target_vel,
         bool &touch_goal);
-    bool EmergencyStop(Eigen::Vector3d stop_pos);
+    bool EmergencyStop(Eigen::Vector2d stop_pos);
 
     bool setLocalTrajFromOpt(const poly_traj::MinJerkOpt &opt, const bool touch_goal);
 

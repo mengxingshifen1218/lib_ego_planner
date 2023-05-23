@@ -130,7 +130,7 @@ namespace ego_planner
       t_seg_start(i + 1) = t_seg_start(i) + durations(i);
     const double DURATION = durations.sum();
     double t = 0.0, t_step = min(RES / max_vel_, durations.minCoeff() / max(cps_num_prePiece_, 1) / 1.5);
-    Eigen::Vector3d pt_last = traj.getPos(0.0);
+    Eigen::Vector2d pt_last = traj.getPos(0.0);
     // pts_check[0].push_back(pt_last);
     int id_cps_curr = 0, id_piece_curr = 0;
 
@@ -176,10 +176,10 @@ namespace ego_planner
         }
       }
 
-      Eigen::Vector3d pt = traj.getPos(t);
+      Eigen::Vector2d pt = traj.getPos(t);
       if (t < 1e-5 || pts_check[id_cps_curr].size() == 0 || (pt - pt_last).cwiseAbs().maxCoeff() > RES_2)
       {
-        pts_check[id_cps_curr].emplace_back(std::pair<double, Eigen::Vector3d>(t, pt));
+        pts_check[id_cps_curr].emplace_back(std::pair<double, Eigen::Vector2d>(t, pt));
         pt_last = pt;
       }
 
@@ -276,11 +276,11 @@ namespace ego_planner
     }
 
     /*** a star search ***/
-    vector<vector<Eigen::Vector3d>> a_star_pathes;
+    vector<vector<Eigen::Vector2d>> a_star_pathes;
     for (size_t i = 0; i < segment_ids.size(); ++i)
     {
       // Search from back to head
-      Eigen::Vector3d in(init_points.col(segment_ids[i].second)), out(init_points.col(segment_ids[i].first));
+      Eigen::Vector2d in(init_points.col(segment_ids[i].second)), out(init_points.col(segment_ids[i].first));
       ASTAR_RET ret = a_star_->AstarSearch(grid_map_->getResolution(), in, out);
       if (ret == ASTAR_RET::SUCCESS)
       {
@@ -383,7 +383,7 @@ namespace ego_planner
       int got_intersection_id = -1;
       for (int j = segment_ids[i].first + 1; j < segment_ids[i].second; ++j)
       {
-        Eigen::Vector3d ctrl_pts_law(init_points.col(j + 1) - init_points.col(j - 1)), intersection_point;
+        Eigen::Vector2d ctrl_pts_law(init_points.col(j + 1) - init_points.col(j - 1)), intersection_point;
         int Astar_id = a_star_pathes[i].size() / 2, last_Astar_id; // Let "Astar_id = id_of_the_most_far_away_Astar_point" will be better, but it needs more computation
         double val = (a_star_pathes[i][Astar_id] - init_points.col(j)).dot(ctrl_pts_law), init_val = val;
         while (true)
@@ -453,8 +453,8 @@ namespace ego_planner
       /* Corner case: the segment length is too short. Here the control points may outside the A* path, leading to opposite gradient direction. So I have to take special care of it */
       if (segment_ids[i].second - segment_ids[i].first == 1)
       {
-        Eigen::Vector3d ctrl_pts_law(init_points.col(segment_ids[i].second) - init_points.col(segment_ids[i].first)), intersection_point;
-        Eigen::Vector3d middle_point = (init_points.col(segment_ids[i].second) + init_points.col(segment_ids[i].first)) / 2;
+        Eigen::Vector2d ctrl_pts_law(init_points.col(segment_ids[i].second) - init_points.col(segment_ids[i].first)), intersection_point;
+        Eigen::Vector2d middle_point = (init_points.col(segment_ids[i].second) + init_points.col(segment_ids[i].first)) / 2;
         int Astar_id = a_star_pathes[i].size() / 2, last_Astar_id; // Let "Astar_id = id_of_the_most_far_away_Astar_point" will be better, but it needs more computation
         double val = (a_star_pathes[i][Astar_id] - middle_point).dot(ctrl_pts_law), init_val = val;
         while (true)
@@ -606,11 +606,11 @@ namespace ego_planner
 
     if (flag_new_obs_valid)
     {
-      vector<vector<Eigen::Vector3d>> a_star_pathes;
+      vector<vector<Eigen::Vector2d>> a_star_pathes;
       for (size_t i = 0; i < segment_ids.size(); ++i)
       {
         /*** a star search ***/
-        Eigen::Vector3d in(cps_.points.col(segment_ids[i].second)), out(cps_.points.col(segment_ids[i].first));
+        Eigen::Vector2d in(cps_.points.col(segment_ids[i].second)), out(cps_.points.col(segment_ids[i].first));
         ASTAR_RET ret = a_star_->AstarSearch(/*(in-out).norm()/10+0.05*/ grid_map_->getResolution(), in, out);
         if (ret == ASTAR_RET::SUCCESS)
         {
@@ -652,7 +652,7 @@ namespace ego_planner
         int got_intersection_id = -1;
         for (int j = segment_ids[i].first + 1; j < segment_ids[i].second; ++j)
         {
-          Eigen::Vector3d ctrl_pts_law(cps_.points.col(j + 1) - cps_.points.col(j - 1)), intersection_point;
+          Eigen::Vector2d ctrl_pts_law(cps_.points.col(j + 1) - cps_.points.col(j - 1)), intersection_point;
           int Astar_id = a_star_pathes[i].size() / 2, last_Astar_id; // Let "Astar_id = id_of_the_most_far_away_Astar_point" will be better, but it needs more computation
           double val = (a_star_pathes[i][Astar_id] - cps_.points.col(j)).dot(ctrl_pts_law), init_val = val;
           while (true)
@@ -835,13 +835,13 @@ namespace ego_planner
       if (RichInfoSegs[i].first.cp_size > 1)
       {
         int occ_start_id = -1, occ_end_id = -1;
-        Eigen::Vector3d occ_start_pt, occ_end_pt;
+        Eigen::Vector2d occ_start_pt, occ_end_pt;
         for (int j = 0; j < RichInfoSegs[i].first.cp_size - 1; j++)
         {
           double step_size = RESOLUTION / (RichInfoSegs[i].first.points.col(j) - RichInfoSegs[i].first.points.col(j + 1)).norm() / 2;
           for (double a = 1; a > 0; a -= step_size)
           {
-            Eigen::Vector3d pt(a * RichInfoSegs[i].first.points.col(j) + (1 - a) * RichInfoSegs[i].first.points.col(j + 1));
+            Eigen::Vector2d pt(a * RichInfoSegs[i].first.points.col(j) + (1 - a) * RichInfoSegs[i].first.points.col(j + 1));
             if (grid_map_->getInflateOccupancy(pt))
             {
               occ_start_id = j;
@@ -857,7 +857,7 @@ namespace ego_planner
           double step_size = RESOLUTION / (RichInfoSegs[i].first.points.col(j) - RichInfoSegs[i].first.points.col(j - 1)).norm();
           for (double a = 1; a > 0; a -= step_size)
           {
-            Eigen::Vector3d pt(a * RichInfoSegs[i].first.points.col(j) + (1 - a) * RichInfoSegs[i].first.points.col(j - 1));
+            Eigen::Vector2d pt(a * RichInfoSegs[i].first.points.col(j) + (1 - a) * RichInfoSegs[i].first.points.col(j - 1));
             if (grid_map_->getInflateOccupancy(pt))
             {
               occ_end_id = j;
@@ -885,7 +885,7 @@ namespace ego_planner
         // 1.2 Reverse the vector and find new base points from occ_start_id to occ_end_id.
         for (int j = occ_start_id; j <= occ_end_id; j++)
         {
-          Eigen::Vector3d base_pt_reverse, base_vec_reverse;
+          Eigen::Vector2d base_pt_reverse, base_vec_reverse;
           if (RichInfoSegs[i].first.base_point[j].size() != 1)
           {
             cout << "RichInfoSegs[" << i << "].first.base_point[" << j << "].size()=" << RichInfoSegs[i].first.base_point[j].size() << endl;
@@ -931,7 +931,7 @@ namespace ego_planner
             double l = RESOLUTION;
             for (; l <= l_upbound; l += RESOLUTION)
             {
-              Eigen::Vector3d base_pt_temp = base_pt_reverse + l * base_vec_reverse;
+              Eigen::Vector2d base_pt_temp = base_pt_reverse + l * base_vec_reverse;
               if (!grid_map_->getInflateOccupancy(base_pt_temp))
               {
                 RichInfoSegs[i].second.base_point[j][0] = base_pt_temp;
@@ -990,8 +990,8 @@ namespace ego_planner
       }
       else
       {
-        Eigen::Vector3d base_vec_reverse = -RichInfoSegs[i].first.direction[0][0];
-        Eigen::Vector3d base_pt_reverse = RichInfoSegs[i].first.points.col(0) + base_vec_reverse * (RichInfoSegs[i].first.base_point[0][0] - RichInfoSegs[i].first.points.col(0)).norm();
+        Eigen::Vector2d base_vec_reverse = -RichInfoSegs[i].first.direction[0][0];
+        Eigen::Vector2d base_pt_reverse = RichInfoSegs[i].first.points.col(0) + base_vec_reverse * (RichInfoSegs[i].first.base_point[0][0] - RichInfoSegs[i].first.points.col(0)).norm();
 
         if (grid_map_->getInflateOccupancy(base_pt_reverse)) // Search outward.
         {
@@ -999,7 +999,7 @@ namespace ego_planner
           double l = RESOLUTION;
           for (; l <= l_upbound; l += RESOLUTION)
           {
-            Eigen::Vector3d base_pt_temp = base_pt_reverse + l * base_vec_reverse;
+            Eigen::Vector2d base_pt_temp = base_pt_reverse + l * base_vec_reverse;
             if (!grid_map_->getInflateOccupancy(base_pt_temp))
             {
               RichInfoSegs[i].second.base_point[0][0] = base_pt_temp;
@@ -1131,11 +1131,11 @@ namespace ego_planner
     PolyTrajOptimizer *opt = reinterpret_cast<PolyTrajOptimizer *>(func_data);
 
 
-    Eigen::Map<const Eigen::MatrixXd> P(x, 3, opt->piece_num_ - 1);
+    Eigen::Map<const Eigen::MatrixXd> P(x, DIME_SIZE, opt->piece_num_ - 1);
     // Eigen::VectorXd T(Eigen::VectorXd::Constant(piece_nums, opt->t2T(x[n - 1]))); // same t
-    Eigen::Map<const Eigen::VectorXd> t(x + (3 * (opt->piece_num_ - 1)), opt->piece_num_);
-    Eigen::Map<Eigen::MatrixXd> gradP(grad, 3, opt->piece_num_ - 1);
-    Eigen::Map<Eigen::VectorXd> gradt(grad + (3 * (opt->piece_num_ - 1)), opt->piece_num_);
+    Eigen::Map<const Eigen::VectorXd> t(x + (DIME_SIZE * (opt->piece_num_ - 1)), opt->piece_num_);
+    Eigen::Map<Eigen::MatrixXd> gradP(grad, DIME_SIZE, opt->piece_num_ - 1);
+    Eigen::Map<Eigen::VectorXd> gradt(grad + (DIME_SIZE * (opt->piece_num_ - 1)), opt->piece_num_);
     Eigen::VectorXd T(opt->piece_num_);
 
     Eigen::VectorXd gradT(opt->piece_num_);
@@ -1228,13 +1228,13 @@ namespace ego_planner
   {
     //
     int N = gdT.size();
-    Eigen::Vector3d pos, vel, acc, jer, sna;
-    Eigen::Vector3d gradp, gradv, grada, gradj;
+    Eigen::Vector2d pos, vel, acc, jer, sna;
+    Eigen::Vector2d gradp, gradv, grada, gradj;
     double costp, costv, costa, costj;
     Eigen::Matrix<double, 6, 1> beta0, beta1, beta2, beta3, beta4;
     double s1, s2, s3, s4, s5;
     double step, alpha;
-    Eigen::Matrix<double, 6, 3> gradViolaPc, gradViolaVc, gradViolaAc, gradViolaJc;
+    Eigen::Matrix<double, 6, 2> gradViolaPc, gradViolaVc, gradViolaAc, gradViolaJc;
     double gradViolaPt, gradViolaVt, gradViolaAt, gradViolaJt;
     double omg;
     int i_dp = 0;
@@ -1248,7 +1248,7 @@ namespace ego_planner
     for (int i = 0; i < N; ++i)
     {
 
-      const Eigen::Matrix<double, 6, 3> &c = jerkOpt_.get_b().block<6, 3>(i * 6, 0);
+      const Eigen::Matrix<double, 6, 2> &c = jerkOpt_.get_b().block<6, 2>(i * 6, 0);
       step = jerkOpt_.get_T1()(i) / K;
       s1 = 0.0;
       // innerLoop = K;
@@ -1280,7 +1280,7 @@ namespace ego_planner
         {
           gradViolaPc = beta0 * gradp.transpose();
           gradViolaPt = alpha * gradp.transpose() * vel;
-          jerkOpt_.get_gdC().block<6, 3>(i * 6, 0) += omg * step * gradViolaPc;
+          jerkOpt_.get_gdC().block<6, 2>(i * 6, 0) += omg * step * gradViolaPc;
           gdT(i) += omg * (costp / K + step * gradViolaPt);
           costs(0) += omg * step * costp;
         }
@@ -1290,7 +1290,7 @@ namespace ego_planner
         {
           gradViolaVc = beta1 * gradv.transpose();
           gradViolaVt = alpha * gradv.transpose() * acc;
-          jerkOpt_.get_gdC().block<6, 3>(i * 6, 0) += omg * step * gradViolaVc;
+          jerkOpt_.get_gdC().block<6, 2>(i * 6, 0) += omg * step * gradViolaVc;
           gdT(i) += omg * (costv / K + step * gradViolaVt);
           costs(2) += omg * step * costv;
         }
@@ -1299,7 +1299,7 @@ namespace ego_planner
         {
           gradViolaAc = beta2 * grada.transpose();
           gradViolaAt = alpha * grada.transpose() * jer;
-          jerkOpt_.get_gdC().block<6, 3>(i * 6, 0) += omg * step * gradViolaAc;
+          jerkOpt_.get_gdC().block<6, 2>(i * 6, 0) += omg * step * gradViolaAc;
           gdT(i) += omg * (costa / K + step * gradViolaAt);
           costs(2) += omg * step * costa;
         }
@@ -1308,7 +1308,7 @@ namespace ego_planner
         {
           gradViolaJc = beta3 * gradj.transpose();
           gradViolaJt = alpha * gradj.transpose() * sna;
-          jerkOpt_.get_gdC().block<6, 3>(i * 6, 0) += omg * step * gradViolaJc;
+          jerkOpt_.get_gdC().block<6, 2>(i * 6, 0) += omg * step * gradViolaJc;
           gdT(i) += omg * (costj / K + step * gradViolaJt);
           costs(2) += omg * step * costj;
         }
@@ -1346,13 +1346,13 @@ namespace ego_planner
         beta0 << 1.0, s1, s2, s3, s4, s5;
         beta1 << 0.0, 1.0, 2.0 * s1, 3.0 * s2, 4.0 * s3, 5.0 * s4;
         alpha = 1.0 / K * j;
-        vel = jerkOpt_.get_b().block<6, 3>(i * 6, 0).transpose() * beta1;
+        vel = jerkOpt_.get_b().block<6, 2>(i * 6, 0).transpose() * beta1;
 
         omg = (j == 0 || j == K) ? 0.5 : 1.0;
 
         gradViolaPc = beta0 * gdp.col(i_dp).transpose();
         gradViolaPt = alpha * gdp.col(i_dp).transpose() * vel;
-        jerkOpt_.get_gdC().block<6, 3>(i * 6, 0) += omg * gradViolaPc;
+        jerkOpt_.get_gdC().block<6, 2>(i * 6, 0) += omg * gradViolaPc;
         gdT(i) += omg * (gradViolaPt);
 
         s1 += step;
@@ -1367,8 +1367,8 @@ namespace ego_planner
   }
 
   bool PolyTrajOptimizer::obstacleGradCostP(const int i_dp,
-                                            const Eigen::Vector3d &p,
-                                            Eigen::Vector3d &gradp,
+                                            const Eigen::Vector2d &p,
+                                            Eigen::Vector2d &gradp,
                                             double &costp)
   {
     if (i_dp == 0 || i_dp > ConstraintPoints::two_thirds_id(cps_.points, touch_goal_)) // only apply to first 2/3
@@ -1382,11 +1382,11 @@ namespace ego_planner
     // Obatacle cost
     for (size_t j = 0; j < cps_.direction[i_dp].size(); ++j)
     {
-      Eigen::Vector3d ray = (p - cps_.base_point[i_dp][j]);
+      Eigen::Vector2d ray = (p - cps_.base_point[i_dp][j]);
       double dist = ray.dot(cps_.direction[i_dp][j]);
       double dist_err = obs_clearance_ - dist;
       double dist_err_soft = obs_clearance_soft_ - dist;
-      Eigen::Vector3d dist_grad = cps_.direction[i_dp][j];
+      Eigen::Vector2d dist_grad = cps_.direction[i_dp][j];
 
       if (dist_err > 0)
       {
@@ -1409,8 +1409,8 @@ namespace ego_planner
     return ret;
   }
 
-  bool PolyTrajOptimizer::feasibilityGradCostV(const Eigen::Vector3d &v,
-                                               Eigen::Vector3d &gradv,
+  bool PolyTrajOptimizer::feasibilityGradCostV(const Eigen::Vector2d &v,
+                                               Eigen::Vector2d &gradv,
                                                double &costv)
   {
     double vpen = v.squaredNorm() - max_vel_ * max_vel_;
@@ -1423,8 +1423,8 @@ namespace ego_planner
     return false;
   }
 
-  bool PolyTrajOptimizer::feasibilityGradCostA(const Eigen::Vector3d &a,
-                                               Eigen::Vector3d &grada,
+  bool PolyTrajOptimizer::feasibilityGradCostA(const Eigen::Vector2d &a,
+                                               Eigen::Vector2d &grada,
                                                double &costa)
   {
     double apen = a.squaredNorm() - max_acc_ * max_acc_;
@@ -1437,8 +1437,8 @@ namespace ego_planner
     return false;
   }
 
-  bool PolyTrajOptimizer::feasibilityGradCostJ(const Eigen::Vector3d &j,
-                                               Eigen::Vector3d &gradj,
+  bool PolyTrajOptimizer::feasibilityGradCostJ(const Eigen::Vector2d &j,
+                                               Eigen::Vector2d &gradj,
                                                double &costj)
   {
     double jpen = j.squaredNorm() - max_jer_ * max_jer_;
@@ -1512,19 +1512,6 @@ namespace ego_planner
   /* helper functions */
   void PolyTrajOptimizer::setParam()
   {
-    // TODO
-    // nh.param("optimization/constraint_points_perPiece", cps_num_prePiece_, -1);
-    // nh.param("optimization/weight_obstacle", wei_obs_, -1.0);
-    // nh.param("optimization/weight_obstacle_soft", wei_obs_soft_, -1.0);
-    // nh.param("optimization/weight_swarm", wei_swarm_, -1.0);
-    // nh.param("optimization/weight_feasibility", wei_feas_, -1.0);
-    // nh.param("optimization/weight_sqrvariance", wei_sqrvar_, -1.0);
-    // nh.param("optimization/weight_time", wei_time_, -1.0);
-    // nh.param("optimization/obstacle_clearance", obs_clearance_, -1.0);
-    // nh.param("optimization/obstacle_clearance_soft", obs_clearance_soft_, -1.0);
-    // nh.param("optimization/max_vel", max_vel_, -1.0);
-    // nh.param("optimization/max_acc", max_acc_, -1.0);
-    // nh.param("optimization/max_jer", max_jer_, -1.0);
     cps_num_prePiece_ = 5;
     wei_obs_ = 10000.0;
     wei_obs_soft_ = 5000.0;
@@ -1545,7 +1532,7 @@ namespace ego_planner
     grid_map_ = map;
 
     a_star_.reset(new AStar);
-    a_star_->initGridMap(grid_map_, Eigen::Vector3i(100, 100, 100));
+    a_star_->initGridMap(grid_map_, Eigen::Vector2i(100, 100));
   }
 
   void PolyTrajOptimizer::setControlPoints(const Eigen::MatrixXd &points)

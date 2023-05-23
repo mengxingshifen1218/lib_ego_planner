@@ -24,12 +24,15 @@ add_library(lib_ego_planner
     src/poly_traj_optimizer.cpp
     src/grid_map.cpp
     src/dyn_a_star.cpp
-    src/raycast.cpp 
     )
 
-add_executable(main
-    src/main.cpp)
-target_link_libraries(main
+add_executable(optimize_test
+    src/optimize_test.cpp)
+
+target_link_libraries(optimize_test
     lib_ego_planner
     ${OpenCV_LIBS}
     )  
+
+add_executable(main
+src/main.cpp)

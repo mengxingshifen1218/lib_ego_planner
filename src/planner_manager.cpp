@@ -9,7 +9,7 @@ namespace ego_planner
 
   EGOPlannerManager::EGOPlannerManager() {}
 
-  EGOPlannerManager::~EGOPlannerManager() { std::cout << "des manager" << std::endl; }
+  EGOPlannerManager::~EGOPlannerManager() { std::cout << "destory manager" << std::endl; }
 
   void EGOPlannerManager::initPlanModules()
   {
@@ -28,13 +28,12 @@ namespace ego_planner
     ploy_traj_opt_.reset(new PolyTrajOptimizer);
     ploy_traj_opt_->setParam();
     ploy_traj_opt_->setEnvironment(grid_map_);
-
   }
 
   bool EGOPlannerManager::reboundReplan(
-      const Eigen::Vector3d &start_pt, const Eigen::Vector3d &start_vel,
-      const Eigen::Vector3d &start_acc, const Eigen::Vector3d &local_target_pt,
-      const Eigen::Vector3d &local_target_vel, const bool flag_polyInit,
+      const Eigen::Vector2d &start_pt, const Eigen::Vector2d &start_vel,
+      const Eigen::Vector2d &start_acc, const Eigen::Vector2d &local_target_pt,
+      const Eigen::Vector2d &local_target_vel, const bool flag_polyInit,
       const bool flag_randomPolyTraj, const bool touch_goal)
   {
     Time t_start = Now();
@@ -68,7 +67,7 @@ namespace ego_planner
 
     t_init = Now() - t_start;
 
-    std::vector<Eigen::Vector3d> point_set;
+    std::vector<Eigen::Vector2d> point_set;
     for (int i = 0; i < cstr_pts.cols(); ++i)
       point_set.push_back(cstr_pts.col(i));
 
@@ -77,7 +76,7 @@ namespace ego_planner
 
     /*** STEP 2: OPTIMIZE ***/
     bool flag_success = false;
-    vector<vector<Eigen::Vector3d>> vis_trajs;
+    vector<vector<Eigen::Vector2d>> vis_trajs;
     poly_traj::MinJerkOpt best_MJO;
 
     // printf("BBBB");
@@ -90,7 +89,7 @@ namespace ego_planner
       int PN = initTraj.getPieceNum();
       Eigen::MatrixXd all_pos = initTraj.getPositions();
       Eigen::MatrixXd innerPts = all_pos.block(0, 1, 3, PN - 1);
-      Eigen::Matrix<double, 3, 3> headState, tailState;
+      Eigen::Matrix<double, 2, 3> headState, tailState;
       headState << initTraj.getJuncPos(0), initTraj.getJuncVel(0), initTraj.getJuncAcc(0);
       tailState << initTraj.getJuncPos(PN), initTraj.getJuncVel(PN), initTraj.getJuncAcc(PN);
       double final_cost, min_cost = 999999.0;
@@ -113,7 +112,7 @@ namespace ego_planner
 
           // visualization
           Eigen::MatrixXd ctrl_pts_temp = ploy_traj_opt_->getMinJerkOpt().getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
-          std::vector<Eigen::Vector3d> point_set;
+          std::vector<Eigen::Vector2d> point_set;
           for (int j = 0; j < ctrl_pts_temp.cols(); j++)
           {
             point_set.push_back(ctrl_pts_temp.col(j));
@@ -139,7 +138,7 @@ namespace ego_planner
       int PN = initTraj.getPieceNum();
       Eigen::MatrixXd all_pos = initTraj.getPositions();
       Eigen::MatrixXd innerPts = all_pos.block(0, 1, 3, PN - 1);
-      Eigen::Matrix<double, 3, 3> headState, tailState;
+      Eigen::Matrix<double, 2, 3> headState, tailState;
       headState << initTraj.getJuncPos(0), initTraj.getJuncVel(0), initTraj.getJuncAcc(0);
       tailState << initTraj.getJuncPos(PN), initTraj.getJuncVel(PN), initTraj.getJuncAcc(PN);
       double final_cost;
@@ -183,8 +182,8 @@ namespace ego_planner
   }
 
   bool EGOPlannerManager::computeInitState(
-      const Eigen::Vector3d &start_pt, const Eigen::Vector3d &start_vel, const Eigen::Vector3d &start_acc,
-      const Eigen::Vector3d &local_target_pt, const Eigen::Vector3d &local_target_vel,
+      const Eigen::Vector2d &start_pt, const Eigen::Vector2d &start_vel, const Eigen::Vector2d &start_acc,
+      const Eigen::Vector2d &local_target_pt, const Eigen::Vector2d &local_target_vel,
       const bool flag_polyInit, const bool flag_randomPolyTraj, const double &ts,
       poly_traj::MinJerkOpt &init_MJO)
   {
@@ -196,13 +195,13 @@ namespace ego_planner
       flag_first_call = false;
 
       /* basic params */
-      Eigen::Matrix3d headState, tailState;
+      Eigen::Matrix<double, DIME_SIZE, 3>  headState, tailState;
       Eigen::MatrixXd innerPs;
       Eigen::VectorXd piece_dur_vec;
       int piece_nums;
       constexpr double init_of_init_totaldur = 2.0;
       headState << start_pt, start_vel, start_acc;
-      tailState << local_target_pt, local_target_vel, Eigen::Vector3d::Zero();
+      tailState << local_target_pt, local_target_vel, Eigen::Vector2d::Zero();
 
       /* determined or random inner point */
       if (!flag_randomPolyTraj)
@@ -220,16 +219,10 @@ namespace ego_planner
       else
       {
         // 随机式内点生成
-        Eigen::Vector3d horizon_dir = ((start_pt - local_target_pt).cross(Eigen::Vector3d(0, 0, 1))).normalized();
-        Eigen::Vector3d vertical_dir = ((start_pt - local_target_pt).cross(horizon_dir)).normalized();
-        innerPs.resize(3, 1);
+        innerPs.resize(2, 1);
         innerPs = (start_pt + local_target_pt) / 2 +
                   (((double)rand()) / RAND_MAX - 0.5) *
-                      (start_pt - local_target_pt).norm() *
-                      horizon_dir * 0.8 * (-0.978 / (continous_failures_count_ + 0.989) + 0.989) +
-                  (((double)rand()) / RAND_MAX - 0.5) *
-                      (start_pt - local_target_pt).norm() *
-                      vertical_dir * 0.4 * (-0.978 / (continous_failures_count_ + 0.989) + 0.989);
+                      (start_pt - local_target_pt) * 0.8 * (-0.978 / (continous_failures_count_ + 0.989) + 0.989) ;
 
         piece_nums = 2;
         piece_dur_vec.resize(2);
@@ -285,11 +278,11 @@ namespace ego_planner
       if (piece_nums < 2)
         piece_nums = 2;
 
-      Eigen::Matrix3d headState, tailState;
+      Eigen::Matrix<double, DIME_SIZE, 3> headState, tailState;
       Eigen::MatrixXd innerPs(3, piece_nums - 1);
       Eigen::VectorXd piece_dur_vec = Eigen::VectorXd::Constant(piece_nums, t_to_local_target / piece_nums);
       headState << start_pt, start_vel, start_acc;
-      tailState << local_target_pt, local_target_vel, Eigen::Vector3d::Zero();
+      tailState << local_target_pt, local_target_vel, Eigen::Vector2d::Zero();
 
       double t = piece_dur_vec(0);
       for (int i = 0; i < piece_nums - 1; ++i)
@@ -319,9 +312,9 @@ namespace ego_planner
   }
 
   void EGOPlannerManager::getLocalTarget(
-      const double planning_horizon, const Eigen::Vector3d &start_pt,
-      const Eigen::Vector3d &global_end_pt, Eigen::Vector3d &local_target_pos,
-      Eigen::Vector3d &local_target_vel, bool &touch_goal)
+      const double planning_horizon, const Eigen::Vector2d &start_pt,
+      const Eigen::Vector2d &global_end_pt, Eigen::Vector2d &local_target_pos,
+      Eigen::Vector2d &local_target_vel, bool &touch_goal)
   {
     double t;
     touch_goal = false;
@@ -334,7 +327,7 @@ namespace ego_planner
          t < (traj_.global_traj.global_start_time + traj_.global_traj.duration);
          t += t_step)
     {
-      Eigen::Vector3d pos_t = traj_.global_traj.traj.getPos(t - traj_.global_traj.global_start_time);
+      Eigen::Vector2d pos_t = traj_.global_traj.traj.getPos(t - traj_.global_traj.global_start_time);
       double dist = (pos_t - start_pt).norm();
 
       if (dist >= planning_horizon)
@@ -354,7 +347,7 @@ namespace ego_planner
 
     if ((global_end_pt - local_target_pos).norm() < (pp_.max_vel_ * pp_.max_vel_) / (2 * pp_.max_acc_))
     {
-      local_target_vel = Eigen::Vector3d::Zero();
+      local_target_vel = Eigen::Vector2d::Zero();
     }
     else
     {
@@ -376,14 +369,14 @@ namespace ego_planner
     return ret;
   }
 
-  bool EGOPlannerManager::EmergencyStop(Eigen::Vector3d stop_pos)
+  bool EGOPlannerManager::EmergencyStop(Eigen::Vector2d stop_pos)
   {
-    auto ZERO = Eigen::Vector3d::Zero();
-    Eigen::Matrix<double, 3, 3> headState, tailState;
+    auto ZERO = Eigen::Vector2d::Zero();
+    Eigen::Matrix<double, 2, 3> headState, tailState;
     headState << stop_pos, ZERO, ZERO;
     tailState = headState;
     poly_traj::MinJerkOpt stopMJO;
-    stopMJO.reset(headState, tailState, 2);
+    stopMJO.reset(headState, tailState, 3);
     stopMJO.generate(stop_pos, Eigen::Vector2d(1.0, 1.0));
 
     setLocalTrajFromOpt(stopMJO, false);
@@ -393,13 +386,13 @@ namespace ego_planner
 
 
   bool EGOPlannerManager::planGlobalTrajWaypoints(
-      const Eigen::Vector3d &start_pos, const Eigen::Vector3d &start_vel,
-      const Eigen::Vector3d &start_acc, const std::vector<Eigen::Vector3d> &waypoints,
-      const Eigen::Vector3d &end_vel, const Eigen::Vector3d &end_acc)
+      const Eigen::Vector2d &start_pos, const Eigen::Vector2d &start_vel,
+      const Eigen::Vector2d &start_acc, const std::vector<Eigen::Vector2d> &waypoints,
+      const Eigen::Vector2d &end_vel, const Eigen::Vector2d &end_acc)
   {
 
     poly_traj::MinJerkOpt globalMJO;
-    Eigen::Matrix<double, 3, 3> headState, tailState;
+    Eigen::Matrix<double, 2, 3> headState, tailState;
     headState << start_pos, start_vel, start_acc;
     tailState << waypoints.back(), end_vel, end_acc;
     Eigen::MatrixXd innerPts;
