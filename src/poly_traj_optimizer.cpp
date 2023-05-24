@@ -2,7 +2,7 @@
 
 using namespace std;
 
-#define VERBOSE_OUTPUT false
+#define VERBOSE_OUTPUT true
 #define PRINTF_COND(STR, ...) \
   if (VERBOSE_OUTPUT)         \
   printf(STR, __VA_ARGS__)
@@ -33,7 +33,7 @@ namespace ego_planner
     jerkOpt_.reset(iniState, finState, piece_num_);
     variable_num_ = piece_num_ + 2 * (piece_num_ - 1);
     double x_init[variable_num_];
-
+    lambda2_ = 1.0;
     memcpy(x_init, initInnerPts.data(), initInnerPts.size() * sizeof(x_init[0]));
     Eigen::Map<Eigen::VectorXd> Vt(x_init + initInnerPts.size(), initT.size());
     RealT2VirtualT(initT, Vt);
@@ -94,8 +94,9 @@ namespace ego_planner
         {
           // A not-blank return value means collision to obstales
           flag_still_unsafe = true;
+          lambda2_ *= 2;
           restart_nums++;
-          PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f, fine check collided, keep optimizing\n\033[0m", iter_num_, time_ms);
+          PRINTF_COND("\033[32miter=%d,time(ms)=%5.3f, lambda2_: %.3f fine check collided, keep optimizing\n\033[0m", iter_num_, time_ms, lambda2_);
         }
       }
       else if (result == lbfgs::LBFGSERR_CANCELED)
@@ -205,7 +206,7 @@ namespace ego_planner
       cps_.points = init_points;
     }
 
-    /*** Segment the initial trajectory according to obstacles ***/
+    /*** Step 1: Segment the initial trajectory according to obstacles ***/
     vector<std::pair<int, int>> segment_ids;
     constexpr int ENOUGH_INTERVAL = 2;
     int in_id = -1, out_id = -1;
@@ -230,7 +231,7 @@ namespace ego_planner
         step_size = resolution / dist;
       }
 
-#if 1
+#if 0
       for (double a = 1.0; a > 0.0; a -= step_size)
       {
         occ = grid_map_->getInflateOccupancy(a * init_points.col(i) + (1 - a) * init_points.col(i + 1));
@@ -289,7 +290,7 @@ namespace ego_planner
       return CHK_RET::OBS_FREE;
     }
 
-    /*** a star search ***/
+    /*** Step 2: a star search ***/
     vector<vector<Eigen::Vector2d>> a_star_pathes;
     for (size_t i = 0; i < segment_ids.size(); ++i)
     {
@@ -314,7 +315,7 @@ namespace ego_planner
       }
     }
 
-    /*** calculate bounds ***/
+    /*** Step 3: calculate bounds ***/
     int id_low_bound, id_up_bound;
     vector<std::pair<int, int>> bounds(segment_ids.size());
     for (size_t i = 0; i < segment_ids.size(); i++)
@@ -346,7 +347,7 @@ namespace ego_planner
       bounds[i] = std::pair<int, int>(id_low_bound, id_up_bound);
     }
 
-    /*** Adjust segment length ***/
+    /*** Step 4: Adjust segment length ***/
     vector<std::pair<int, int>> adjusted_segment_ids(segment_ids.size());
     constexpr double MINIMUM_PERCENT = 0.0; // Each segment is guaranteed to have sufficient points to generate sufficient force
     int minimum_points = round(init_points.cols() * MINIMUM_PERCENT), num_points;
@@ -386,7 +387,7 @@ namespace ego_planner
     // Used for return
     vector<std::pair<int, int>> final_segment_ids;
 
-    /*** Assign data to each segment ***/
+    /*** Step 5: Assign data to each segment ***/
     for (size_t i = 0; i < segment_ids.size(); i++)
     {
       // step 1
@@ -402,11 +403,11 @@ namespace ego_planner
         double val = (a_star_pathes[i][Astar_id] - init_points.col(j)).dot(ctrl_pts_law), init_val = val;
         while (true)
         {
-
           last_Astar_id = Astar_id;
 
           if (val >= 0)
           {
+            // 锐角，需要往回走， 才能找到垂直的
             ++Astar_id; // Previous Astar search from back to head
             if (Astar_id >= (int)a_star_pathes[i].size())
             {
@@ -414,7 +415,7 @@ namespace ego_planner
             }
           }
           else
-          {
+          { // 钝角，需要往前走， 才能找到垂直的
             --Astar_id;
             if (Astar_id < 0)
             {
@@ -451,8 +452,8 @@ namespace ego_planner
               {
                 if (occ)
                   a += grid_map_->getResolution();
-                cps_.base_point[j].push_back((a / length) * intersection_point + (1 - a / length) * init_points.col(j));
-                cps_.direction[j].push_back((intersection_point - init_points.col(j)).normalized());
+                cps_.base_point[j].push_back((a / length) * intersection_point + (1 - a / length) * init_points.col(j)); // p in paper
+                cps_.direction[j].push_back((intersection_point - init_points.col(j)).normalized());                     // v in paper
                 break;
               }
             }
@@ -1374,6 +1375,9 @@ namespace ego_planner
     }
 
     costs(3) += var;
+
+    // costs = lambda2_ * costs;
+    // gdT = lambda2_ * gdT;
   }
 
   bool PolyTrajOptimizer::obstacleGradCostP(const int i_dp,
@@ -1388,6 +1392,7 @@ namespace ego_planner
 
     gradp.setZero();
     costp = 0;
+    double a = 3 * obs_clearance_, b = -3 * pow(obs_clearance_, 2), c = pow(obs_clearance_, 3);
 
     // Obatacle cost
     for (size_t j = 0; j < cps_.direction[i_dp].size(); ++j)
@@ -1398,11 +1403,26 @@ namespace ego_planner
       double dist_err_soft = obs_clearance_soft_ - dist;
       Eigen::Vector2d dist_grad = cps_.direction[i_dp][j];
 
-      if (dist_err > 0)
+      // if (dist_err > 0)
+      // {
+      //   ret = true;
+      //   costp += wei_obs_ * pow(dist_err, 3);
+      //   gradp += -wei_obs_ * 3.0 * dist_err * dist_err * dist_grad;
+      // }
+
+      if (dist_err < 0)
       {
-        ret = true;
+        /* do nothing */
+      }
+      else if (dist_err < obs_clearance_)
+      {
         costp += wei_obs_ * pow(dist_err, 3);
-        gradp += -wei_obs_ * 3.0 * dist_err * dist_err * dist_grad;
+        gradp += - wei_obs_ * 3.0 * dist_err * dist_err * dist_grad;
+      }
+      else
+      {
+        costp += wei_obs_ *(a * dist_err * dist_err + b * dist_err + c);
+        gradp += -wei_obs_ * (2.0 * a * dist_err + b) * dist_grad;
       }
 
       if (dist_err_soft > 0)
@@ -1415,7 +1435,8 @@ namespace ego_planner
         gradp += -wei_obs_soft_ * dist_err_soft / term * dist_grad;
       }
     }
-
+    costp  = lambda2_ * costp;
+    gradp  = lambda2_ * gradp;
     return ret;
   }
 

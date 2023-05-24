@@ -187,9 +187,9 @@ int main()
 
             final_goal_ = Eigen::Vector2d(end_pt.x / 100.0, end_pt.y / 100.0);
             Time start = Now();
-
-            if (planFromGlobalTraj(1))
-            {
+            planFromGlobalTraj(1);
+            // if (planFromGlobalTraj(1))
+            // {
                 auto data = &planner_manager_->traj_.local_traj;
                 Eigen::VectorXd durs = data->traj.getDurations();
                 double total_duration = data->traj.getTotalDuration();
@@ -222,7 +222,9 @@ int main()
                         circle(image, Point(pos[0] * 100, pos[1] * 100), 2, cv::Scalar(0, 0, 0), -1);
                     }
                 }
-            }
+            // }else{
+            //     cout<<"plan failed"<<endl;
+            // }
 
             Time end = Now();
             chrono::duration<double> t_init = end - start;

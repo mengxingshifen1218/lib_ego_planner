@@ -153,7 +153,7 @@ namespace ego_planner
     }
 
     /*** STEP 3: Store and display results ***/
-    cout << "Success=" << (flag_success ? "yes" : "no") << endl;
+    printf("Success=\033[42m %s",  (flag_success ? "yes \033[0m\n" : "no \033[0m\n"));
     if (flag_success)
     {
       static double sum_time = 0;
@@ -170,24 +170,14 @@ namespace ego_planner
       setLocalTrajFromOpt(best_MJO, touch_goal);
       cstr_pts = best_MJO.getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
       // visualization_->displayOptimalList(cstr_pts, 0);
-      // int height = 1200;
-      // int width = 1200;
-      // cv::Mat image = cv::Mat::ones(cv::Size(height, width), CV_8UC3);
-      // image.setTo(cv::Scalar(255, 255, 255));
-      // for(int idx = 0; idx < (int)cstr_pts.cols(); idx++){
-      //   cv::circle(image, cv::Point(cstr_pts.col(idx)[0] * 100 , cstr_pts.col(idx)[1] * 100 ), 5, cv::Scalar(0, 255, 0), -1);
-      //   cout<<"idx: "<< idx<< " "<<cstr_pts.col(idx).transpose()<<endl;
-      // }
-      // cv::rectangle(image, cv::Rect(100 + width / 4.0 , 100 + height / 4.0, 200, 200), cv::Scalar(255, 0, 0), -1);
 
-      // imwrite("result.png", image);
       continous_failures_count_ = 0;
     }
     else
     {
       cstr_pts = ploy_traj_opt_->getMinJerkOpt().getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
       // visualization_->displayFailedList(cstr_pts, 0);
-
+      setLocalTrajFromOpt(ploy_traj_opt_->getMinJerkOpt(), touch_goal);
       continous_failures_count_++;
     }
 

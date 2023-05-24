@@ -29,7 +29,7 @@ namespace ego_planner
       direction.clear();
       flag_temp.clear();
 
-      points.resize(3, size_set);
+      points.resize(2, size_set);
       base_point.resize(cp_size);
       direction.resize(cp_size);
       flag_temp.resize(cp_size);
@@ -72,17 +72,17 @@ namespace ego_planner
     ConstraintPoints cps_;
     // PtsChk_t pts_check_;
 
-    int cps_num_prePiece_;   // number of distinctive constraint points each piece
-    int variable_num_;       // optimization variables
-    int piece_num_;          // poly traj piece numbers
-    int iter_num_;           // iteration of the solver
+    int cps_num_prePiece_; // number of distinctive constraint points each piece
+    int variable_num_;     // optimization variables
+    int piece_num_;        // poly traj piece numbers
+    int iter_num_;         // iteration of the solver
 
     bool touch_goal_;
     struct MultitopologyData_t
     {
-      bool use_multitopology_trajs{false}; 
-      bool initial_obstacles_avoided{false}; 
-    }multitopology_data_;
+      bool use_multitopology_trajs{false};
+      bool initial_obstacles_avoided{false};
+    } multitopology_data_;
 
     enum FORCE_STOP_OPTIMIZE_TYPE
     {
@@ -92,13 +92,14 @@ namespace ego_planner
     } force_stop_type_;
 
     /* optimization parameters */
-    double wei_obs_, wei_obs_soft_;                               // obstacle weight
-    double wei_feas_;                                             // feasibility weight
-    double wei_sqrvar_;                                           // squared variance weight
-    double wei_time_;                                             // time weight
-    double obs_clearance_, obs_clearance_soft_;                   // safe distance
-    double max_vel_, max_acc_, max_jer_;                          // dynamic limits
+    double wei_obs_, wei_obs_soft_;             // obstacle weight
+    double wei_feas_;                           // feasibility weight
+    double wei_sqrvar_;                         // squared variance weight
+    double wei_time_;                           // time weight
+    double obs_clearance_, obs_clearance_soft_; // safe distance
+    double max_vel_, max_acc_, max_jer_;        // dynamic limits
 
+    double lambda2_;
     double t_now_;
 
   public:
