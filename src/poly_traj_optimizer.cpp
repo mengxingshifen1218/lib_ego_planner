@@ -220,13 +220,26 @@ namespace ego_planner
       return CHK_RET::ERR;
     }
 
+    float resolution = grid_map_->getResolution();
     for (int i = 0; i < i_end; ++i)
     {
+      float dist = (init_points.col(i) - init_points.col(i + 1)).norm();
+      float step_size = 0.5;
+      if (fabs(dist) > resolution)
+      {
+        step_size = resolution / dist;
+      }
+
+#if 1
+      for (double a = 1.0; a > 0.0; a -= step_size)
+      {
+        occ = grid_map_->getInflateOccupancy(a * init_points.col(i) + (1 - a) * init_points.col(i + 1));
+#else
       for (size_t j = 0; j < pts_check[i].size(); ++j)
       {
-        
+
         occ = grid_map_->getInflateOccupancy(pts_check[i][j].second);
-        // cout<<__LINE__<<" here "<<pts_check[i][j].second.transpose()<< " "<<occ<<endl;
+#endif
         if (occ && !last_occ)
         {
           if (same_occ_state_times > ENOUGH_INTERVAL || i == 0)
