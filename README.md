@@ -15,3 +15,7 @@ Then you will see a window, and you can use listed operation of mouse:
 - left button: choose start point
 - right button: choose goal point
 - middle button: clear start and goal point
+
+# Demo
+You can see planning result in follow gif:
+![image](misc/show.gif)

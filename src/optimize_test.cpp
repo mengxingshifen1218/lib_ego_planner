@@ -113,7 +113,7 @@ bool planFromGlobalTraj(const int trial_times /*=1*/) // zx-todo
 //     return true;
 // }
 
-Mat image = Mat::zeros(Size(1200, 1200), CV_8UC3);
+Mat image = Mat::zeros(Size(1280, 720), CV_8UC3);
 
 Point start_pt(-1, -1);
 Point end_pt(-1, -1);
@@ -135,11 +135,15 @@ void onMouse(int event, int x, int y, int flags, void *param)
     if (event == EVENT_LBUTTONDOWN)
     { // 如果左键按下，选起点
         cout << "press left and set start at (" << x << ", " << y << ")" << std::endl;
+        // circle(image, start_pt, 5, cv::Scalar(255, 255, 255), -1);
+        initMap(image);
         start_pt = Point(x, y);
     }
     else if (event == EVENT_RBUTTONDOWN)
     { // 如果右键按下，选终点
         cout << "press right and set end  at (" << x << ", " << y << ")" << std::endl;
+        // circle(image, end_pt, 5, cv::Scalar(255, 255, 255), -1);
+        initMap(image);
         end_pt = Point(x, y);
     }
     else if (event == EVENT_MBUTTONDOWN)
@@ -156,8 +160,6 @@ void onMouse(int event, int x, int y, int flags, void *param)
 
 int main()
 {
-    int height = 1200;
-    int width = 1200;
 
     initMap(image);
 
@@ -186,6 +188,16 @@ int main()
             {
                 auto data = &planner_manager_->traj_.local_traj;
                 Eigen::VectorXd durs = data->traj.getDurations();
+                double total_duration = data->traj.getTotalDuration();
+                // cout << total_duration << " total_duration" << endl;
+                // cout << data->duration << " total_duration" << endl;
+                for (double t = 0; t < total_duration; t = t + 0.1)
+                {
+                    Eigen::Vector2d pos = data->traj.getPos(t);
+                    // cout << t << " " << pos.transpose() << endl;
+                    circle(image, Point(pos[0] * 100, pos[1] * 100), 2, cv::Scalar(0, 0, 255), -1);
+                }
+
                 int piece_num = data->traj.getPieceNum();
                 cout << "piece_num " << piece_num << endl;
                 Eigen::MatrixXd pos = data->traj.getPositions();
@@ -193,7 +205,7 @@ int main()
                 for (int i = 0; i < piece_num - 1; i++)
                 {
                     // cout<<pos.col(i + 1)<<endl;
-                    circle(image, Point(pos(0, i + 1) * 100, pos(1, i + 1) * 100), 5, cv::Scalar(0, 0, 255), -1);
+                    circle(image, Point(pos(0, i + 1) * 100, pos(1, i + 1) * 100), 5, cv::Scalar(0, 255, 255), -1);
                 }
             }
 
