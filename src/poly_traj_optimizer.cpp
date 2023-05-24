@@ -111,7 +111,7 @@ namespace ego_planner
         printf("Solver error. Return = %d, %s. Skip this planning.\n", result, lbfgs::lbfgs_strerror(result));
       }
 
-    } while ((flag_still_unsafe && restart_nums < 3) ||
+    } while ((flag_still_unsafe && restart_nums < 5) ||
              (flag_force_return && force_stop_type_ == STOP_FOR_REBOUND && rebound_times <= 20));
 
     return flag_success;
@@ -1379,7 +1379,9 @@ namespace ego_planner
     // costs = lambda2_ * costs;
     // gdT = lambda2_ * gdT;
   }
-
+/**
+ * obstacle cost include repulse force
+*/
   bool PolyTrajOptimizer::obstacleGradCostP(const int i_dp,
                                             const Eigen::Vector2d &p,
                                             Eigen::Vector2d &gradp,
