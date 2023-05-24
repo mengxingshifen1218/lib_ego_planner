@@ -250,8 +250,8 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector2d start_pt, Vector2d
 
     auto time_2 = Now();
 
-    if ((time_2 - time_1).count() / 1000.0 > 0.1)
-        printf("Time consume in A star path finding is %.3fs, iter=%d", (time_2 - time_1).count() / 1000.0, num_iter);
+    if ((time_2 - time_1).count() / 1e9 > 0.1)
+        printf("Time consume in A star path finding is %.3fs, iter=%d", (time_2 - time_1).count() / 1e9, num_iter);
 
     return ASTAR_RET::SEARCH_ERR;
 }

@@ -170,10 +170,17 @@ namespace ego_planner
       setLocalTrajFromOpt(best_MJO, touch_goal);
       cstr_pts = best_MJO.getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
       // visualization_->displayOptimalList(cstr_pts, 0);
+      int height = 1600;
+      int width = 1600;
+      cv::Mat image = cv::Mat::ones(cv::Size(height, width), CV_8UC3);
+      image.setTo(cv::Scalar(255, 255, 255));
       for(int idx = 0; idx < (int)cstr_pts.cols(); idx++){
+        cv::circle(image, cv::Point(cstr_pts.col(idx)[0] * 100 + width / 2.0, cstr_pts.col(idx)[1] * 100 + height / 2.0), 5, cv::Scalar(0, 255, 0), -1);
         cout<<"idx: "<< idx<< " "<<cstr_pts.col(idx).transpose()<<endl;
       }
+      cv::rectangle(image, cv::Rect(100 + width / 2.0 , 100 + height / 2.0, 200, 200), cv::Scalar(255, 0, 0), -1);
 
+      imwrite("result.png", image);
       continous_failures_count_ = 0;
     }
     else

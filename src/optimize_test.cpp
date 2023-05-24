@@ -63,8 +63,8 @@ int main()
 {
     planner_manager_.reset(new ego_planner::EGOPlannerManager);
     planner_manager_->initPlanModules();
-    start_pt_  = Eigen::Vector2d(0.0, 0.0);
-    start_vel_ = Eigen::Vector2d(0.0, 0.0);
+    odom_pos_  = Eigen::Vector2d(0.5, 0.5);
+    odom_vel_ = Eigen::Vector2d(0.0, 0.0);
     start_acc_ = Eigen::Vector2d(0.0, 0.0);
 
     final_goal_ = Eigen::Vector2d(4.0, 4.0);

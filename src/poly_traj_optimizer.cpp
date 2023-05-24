@@ -56,7 +56,7 @@ namespace ego_planner
       flag_still_unsafe = false;
       flag_success = false;
       flag_swarm_too_close = false;
-      cout << "line: " << __LINE__ << " variable_num_ " << variable_num_ << " initInnerPts.size() " << initInnerPts.size() << endl;
+      // cout << "line: " << __LINE__ << " variable_num_ " << variable_num_ << " initInnerPts.size() " << initInnerPts.size() << endl;
       /* ---------- optimize ---------- */
       t1 = Now();
       int result = lbfgs::lbfgs_optimize(
@@ -224,8 +224,9 @@ namespace ego_planner
     {
       for (size_t j = 0; j < pts_check[i].size(); ++j)
       {
+        
         occ = grid_map_->getInflateOccupancy(pts_check[i][j].second);
-
+        // cout<<__LINE__<<" here "<<pts_check[i][j].second.transpose()<< " "<<occ<<endl;
         if (occ && !last_occ)
         {
           if (same_occ_state_times > ENOUGH_INTERVAL || i == 0)
