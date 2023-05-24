@@ -19,3 +19,8 @@ Then you will see a window, and you can use listed operation of mouse:
 # Demo
 You can see planning result in follow gif:
 ![image](misc/show.gif)
+
+# NOTE
+- fix leng per traj
+# TODO
+- no solution scenrios need to handle

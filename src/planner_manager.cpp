@@ -18,7 +18,7 @@ namespace ego_planner
     pp_.max_vel_ = 1.5;
     pp_.max_acc_ = 6.0;
     pp_.feasibility_tolerance_ = 0.0;
-    pp_.polyTraj_piece_length = 1.0;
+    pp_.polyTraj_piece_length = 1.5;
     pp_.planning_horizon_ = 7.5;
     pp_.use_multitopology_trajs = false;
 

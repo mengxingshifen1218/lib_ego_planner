@@ -127,7 +127,11 @@ void initMap(cv::Mat &img)
     cv::rectangle(img, cv::Rect(100 + width / 2.0, 100 + height / 4.0, 200, 200), cv::Scalar(255, 0, 0), -1);
 
     cv::rectangle(img, cv::Rect(100 + height / 3.0, 100, 100, 200), cv::Scalar(255, 0, 0), -1);
+    cv::circle(img, Point(200, 350), 100, cv::Scalar(0, 0, 255), -1);
 
+    cv::circle(img, Point(600, 200), 100, cv::Scalar(0, 0, 255), -1);
+
+    cv::circle(img, Point(480, 500), 100, cv::Scalar(0, 0, 255), -1);
     is_optimized = false;
 }
 void onMouse(int event, int x, int y, int flags, void *param)
@@ -191,21 +195,32 @@ int main()
                 double total_duration = data->traj.getTotalDuration();
                 // cout << total_duration << " total_duration" << endl;
                 // cout << data->duration << " total_duration" << endl;
+                // Drawing 2: path points
                 for (double t = 0; t < total_duration; t = t + 0.1)
                 {
                     Eigen::Vector2d pos = data->traj.getPos(t);
                     // cout << t << " " << pos.transpose() << endl;
-                    circle(image, Point(pos[0] * 100, pos[1] * 100), 2, cv::Scalar(0, 0, 255), -1);
+                    circle(image, Point(pos[0] * 100, pos[1] * 100), 3, cv::Scalar(0, 0, 255), -1);
                 }
 
                 int piece_num = data->traj.getPieceNum();
                 cout << "piece_num " << piece_num << endl;
                 Eigen::MatrixXd pos = data->traj.getPositions();
                 // cout<<pos<<endl;
+                // Drawing 2: segment points
                 for (int i = 0; i < piece_num - 1; i++)
                 {
                     // cout<<pos.col(i + 1)<<endl;
-                    circle(image, Point(pos(0, i + 1) * 100, pos(1, i + 1) * 100), 5, cv::Scalar(0, 255, 255), -1);
+                    circle(image, Point(pos(0, i + 1) * 100, pos(1, i + 1) * 100), 8, cv::Scalar(20, 255, 255), 2);
+                }
+                // Drawing 3: check points
+                for (int i = 0; i < data->pts_chk.size(); i++)
+                {
+                    for (size_t j = 0; j < data->pts_chk[i].size(); ++j)
+                    {
+                        Eigen::Vector2d pos = data->pts_chk[i][j].second;
+                        circle(image, Point(pos[0] * 100, pos[1] * 100), 2, cv::Scalar(0, 0, 0), -1);
+                    }
                 }
             }
 
