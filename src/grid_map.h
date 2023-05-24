@@ -127,7 +127,7 @@ public:
   GridMap() {}
   ~GridMap() {}
 
-  void initMap();
+  void initMap(cv::Mat& map);
   inline int getOccupancy(Eigen::Vector2d pos);
   inline int getInflateOccupancy(Eigen::Vector2d pos);
   inline double getResolution();
@@ -179,6 +179,8 @@ private:
   uniform_real_distribution<double> rand_noise_;
   normal_distribution<double> rand_noise2_;
   default_random_engine eng_;
+
+  cv::Mat map_;
 };
 
 /* ============================== definition of inline function
@@ -311,19 +313,29 @@ inline int GridMap::getOccupancy(Eigen::Vector2d pos)
 
 inline int GridMap::getInflateOccupancy(Eigen::Vector2d pos)
 {
-  if (!isInInfBuf(pos))
+  if(map_.empty()){
+    cout<<"please init map first"<<endl;
+  }
+  if(pos[0] * 100 < 0 || pos[0] * 100 > map_.cols
+  || pos[1] * 100 < 0 || pos[1] * 100 > map_.rows )
+  // if (!isInInfBuf(pos))
   {
-    // cout<<"out of border"<<endl;
+    cout<<"out of border"<<endl;
     return 0;
-  }
+  } 
+  int pixel_value = map_.at<uchar>(pos[1]* 100, pos[0]* 100);
+  // if(pixel_value == 1){
+    // cout<<pos.transpose()<<" "<<pixel_value<<endl;
+  // }
+  return  pixel_value < 255 ? GRID_MAP_OBS_FLAG : 0;
     
-  // TODO here is just for test
-  if(pos[0] > 1.0 && pos[0] < 3.0 && pos[1] > 1.0 && pos[1] < 3.0 ){
-    // cout<<"getInflateOccupancy obstacle"<<endl;
-    return GRID_MAP_OBS_FLAG;
-  }
+  // // TODO here is just for test
+  // if(pos[0] > 1.0 && pos[0] < 3.0 && pos[1] > 1.0 && pos[1] < 3.0 ){
+  //   // cout<<"getInflateOccupancy obstacle"<<endl;
+  //   return GRID_MAP_OBS_FLAG;
+  // }
 
-  return int(md_.occupancy_buffer_inflate_[globalIdx2InfBufIdx(pos2GlobalIdx(pos))]);
+  // return int(md_.occupancy_buffer_inflate_[globalIdx2InfBufIdx(pos2GlobalIdx(pos))]);
 }
 
 inline bool GridMap::isInBuf(const Eigen::Vector2d &pos)

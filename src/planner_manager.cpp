@@ -11,19 +11,19 @@ namespace ego_planner
 
   EGOPlannerManager::~EGOPlannerManager() { std::cout << "destory manager" << std::endl; }
 
-  void EGOPlannerManager::initPlanModules()
+  void EGOPlannerManager::initPlanModules(cv::Mat& map)
   {
     /* read algorithm parameters */
     // 速度和加速度限制， 需要同步
     pp_.max_vel_ = 1.5;
     pp_.max_acc_ = 6.0;
     pp_.feasibility_tolerance_ = 0.0;
-    pp_.polyTraj_piece_length = 1.5;
+    pp_.polyTraj_piece_length = 0.5;
     pp_.planning_horizon_ = 7.5;
     pp_.use_multitopology_trajs = false;
 
     grid_map_.reset(new GridMap);
-    grid_map_->initMap();
+    grid_map_->initMap(map);
 
     ploy_traj_opt_.reset(new PolyTrajOptimizer);
     ploy_traj_opt_->setParam();
@@ -170,17 +170,17 @@ namespace ego_planner
       setLocalTrajFromOpt(best_MJO, touch_goal);
       cstr_pts = best_MJO.getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
       // visualization_->displayOptimalList(cstr_pts, 0);
-      int height = 1600;
-      int width = 1600;
-      cv::Mat image = cv::Mat::ones(cv::Size(height, width), CV_8UC3);
-      image.setTo(cv::Scalar(255, 255, 255));
-      for(int idx = 0; idx < (int)cstr_pts.cols(); idx++){
-        cv::circle(image, cv::Point(cstr_pts.col(idx)[0] * 100 + width / 2.0, cstr_pts.col(idx)[1] * 100 + height / 2.0), 5, cv::Scalar(0, 255, 0), -1);
-        cout<<"idx: "<< idx<< " "<<cstr_pts.col(idx).transpose()<<endl;
-      }
-      cv::rectangle(image, cv::Rect(100 + width / 2.0 , 100 + height / 2.0, 200, 200), cv::Scalar(255, 0, 0), -1);
+      // int height = 1200;
+      // int width = 1200;
+      // cv::Mat image = cv::Mat::ones(cv::Size(height, width), CV_8UC3);
+      // image.setTo(cv::Scalar(255, 255, 255));
+      // for(int idx = 0; idx < (int)cstr_pts.cols(); idx++){
+      //   cv::circle(image, cv::Point(cstr_pts.col(idx)[0] * 100 , cstr_pts.col(idx)[1] * 100 ), 5, cv::Scalar(0, 255, 0), -1);
+      //   cout<<"idx: "<< idx<< " "<<cstr_pts.col(idx).transpose()<<endl;
+      // }
+      // cv::rectangle(image, cv::Rect(100 + width / 4.0 , 100 + height / 4.0, 200, 200), cv::Scalar(255, 0, 0), -1);
 
-      imwrite("result.png", image);
+      // imwrite("result.png", image);
       continous_failures_count_ = 0;
     }
     else
@@ -334,16 +334,19 @@ namespace ego_planner
   {
     double t;
     touch_goal = false;
-
+cout<<__LINE__<<" get local target"<<endl;
     traj_.global_traj.global_t_last_local_target = traj_.global_traj.global_t_local_target;
 
     double t_step = planning_horizon / 20 / pp_.max_vel_;
     // double dist_min = 9999, dist_min_t = 0.0;
+
     for (t = traj_.global_traj.global_t_local_target;
          t < (traj_.global_traj.global_start_time + traj_.global_traj.duration);
          t += t_step)
     {
+      cout<<__LINE__<<" get local target"<<endl;
       Eigen::Vector2d pos_t = traj_.global_traj.traj.getPos(t - traj_.global_traj.global_start_time);
+          cout<<__LINE__<<" get local target"<<endl;
       double dist = (pos_t - start_pt).norm();
 
       if (dist >= planning_horizon)
@@ -353,14 +356,14 @@ namespace ego_planner
         break;
       }
     }
-
+cout<<__LINE__<<"get local target"<<endl;
     if ((t - traj_.global_traj.global_start_time) >= traj_.global_traj.duration - 1e-5) // Last global point
     {
       local_target_pos = global_end_pt;
       traj_.global_traj.global_t_local_target = traj_.global_traj.global_start_time + traj_.global_traj.duration;
       touch_goal = true;
     }
-
+cout<<__LINE__<<"get local target"<<endl;
     if ((global_end_pt - local_target_pos).norm() < (pp_.max_vel_ * pp_.max_vel_) / (2 * pp_.max_acc_))
     {
       local_target_vel = Eigen::Vector2d::Zero();
@@ -379,6 +382,7 @@ namespace ego_planner
     bool ret = ploy_traj_opt_->computePointsToCheck(traj, ConstraintPoints::two_thirds_id(cps, touch_goal), pts_to_check);
     if (ret && pts_to_check.size() >= 1 && pts_to_check.back().size() >= 1)
     {
+      cout<<"set local traj"<<endl;
       traj_.setLocalTraj(traj, pts_to_check, toSec(Now()));
     }
 

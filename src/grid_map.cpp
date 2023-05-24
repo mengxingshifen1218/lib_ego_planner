@@ -1,10 +1,13 @@
 #include "grid_map.h"
 
-void GridMap::initMap()
+void GridMap::initMap(cv::Mat& map)
 {
 
+  // map_ = map.clone();
+  cv::cvtColor(map, map_, cv::COLOR_BGR2GRAY); 
   /* get parameter */
-
+  imwrite("map.pgm", map_);
+  cout<<"write map"<<endl;
   mp_.resolution_ = 0.1;
   mp_.local_update_range2d_(0) = 5.5;
   mp_.local_update_range2d_(1) = 5.5;
