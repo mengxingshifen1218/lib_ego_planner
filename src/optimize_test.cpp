@@ -61,57 +61,6 @@ bool planFromGlobalTraj(const int trial_times /*=1*/) // zx-todo
     return false;
 }
 
-// int main()
-// {
-//     planner_manager_.reset(new ego_planner::EGOPlannerManager);
-//     planner_manager_->initPlanModules();
-//     odom_pos_  = Eigen::Vector2d(1.5, 0.5);
-//     odom_vel_ = Eigen::Vector2d(0.0, 0.0);
-//     start_acc_ = Eigen::Vector2d(0.0, 0.0);
-
-//     final_goal_ = Eigen::Vector2d(4.0, 4.0);
-//     Time start = Now();
-
-//     planFromGlobalTraj(1);
-
-//     Time end = Now();
-//     chrono::duration<double> t_init = end - start;
-
-//     printf("optimize cost: %f s  \n", t_init.count());
-//     return 0;
-// }
-// bool planFromLocalTraj(const int trial_times /*=1*/)
-// {
-
-//     LocalTrajData *info = &planner_manager_->traj_.local_traj;
-//     double t_cur = toSec(Now()) - info->start_time;
-
-//     start_pt_ = info->traj.getPos(t_cur);
-//     start_vel_ = info->traj.getVel(t_cur);
-//     start_acc_ = info->traj.getAcc(t_cur);
-
-//     bool success = callReboundReplan(false, false);
-
-//     if (!success)
-//     {
-//         success = callReboundReplan(true, false);
-//         if (!success)
-//         {
-//             for (int i = 0; i < trial_times; i++)
-//             {
-//                 success = callReboundReplan(true, true);
-//                 if (success)
-//                     break;
-//             }
-//             if (!success)
-//             {
-//                 return false;
-//             }
-//         }
-//     }
-
-//     return true;
-// }
 
 Mat image = Mat::zeros(Size(1280, 720), CV_8UC3);
 

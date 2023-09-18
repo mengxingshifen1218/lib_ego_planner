@@ -506,8 +506,9 @@ namespace ego_planner
 
             if ((intersection_point - middle_point).norm() > 0.01) // 1cm.
             {
+              printf("Set true in \n");
               cps_.flag_temp[segment_ids[i].first] = true;
-              cps_.base_point[segment_ids[i].first].push_back(init_points.col(segment_ids[i].first));
+              cps_.base_point[segment_ids[i].first].push_back(intersection_point); // intersection_point  init_points.col(segment_ids[i].first)
               cps_.direction[segment_ids[i].first].push_back((intersection_point - middle_point).normalized());
 
               got_intersection_id = segment_ids[i].first;
