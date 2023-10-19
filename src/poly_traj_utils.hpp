@@ -836,6 +836,7 @@ private:
     Eigen::MatrixXd gdC;
 
 private:
+    // 计算Jerk平方相对于时间的导数
     template <typename EIGENVEC>
     inline void addGradJbyT(EIGENVEC &gdT) const
     {
@@ -1050,7 +1051,7 @@ public:
         // gdT.resize(6 * N);
         return;
     }
-    // 用来生成多端多项式的系数矩阵
+    // 用来生成多段多项式的系数矩阵
     inline void generate(const Eigen::MatrixXd &inPs,
                          const Eigen::VectorXd &ts)
     {

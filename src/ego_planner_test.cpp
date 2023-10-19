@@ -111,10 +111,37 @@ void onMouse(int event, int x, int y, int flags, void *param)
     }
 }
 
-int main()
+bool isPointWithinImage(const cv::Mat& image, const Point& point) {
+    return point.x >= 0 && point.x < image.cols && point.y >= 0 && point.y < image.rows;
+}
+
+
+int main(int argc, char* argv[])
 {
 
     initMap(image);
+    std::cerr << "参数数量:" << argc<< std::endl;
+    if (argc > 1 && argc != 5) {
+        std::cerr << "请输入两个点的坐标(x1, y1, x2, y2)作为命令行参数！" << std::endl;
+        std::cerr << "./ego_planner_test 100 100 1050 350"<< std::endl;
+        return 1;
+    }else if(argc > 1 && argc == 5){
+        start_pt.x = std::stoi(argv[1]);
+        start_pt.y = std::stoi(argv[2]);
+        end_pt.x = std::stoi(argv[3]);
+        end_pt.y = std::stoi(argv[4]);
+
+        std::cout << "第一个点的坐标为: (" << start_pt.x << ", " << start_pt.y << ")" << std::endl;
+        std::cout << "第二个点的坐标为: (" << end_pt.x << ", " << end_pt.y << ")" << std::endl;
+
+
+        if (!isPointWithinImage(image, start_pt) || !isPointWithinImage(image, end_pt)) {
+            std::cerr << "点的坐标超出图像范围！" << std::endl;
+            return 1;
+        }
+    }
+
+
 
     namedWindow("Select points");
     setMouseCallback("Select points", onMouse, nullptr);

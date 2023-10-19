@@ -26,10 +26,10 @@ add_library(ego_planner
     src/dyn_a_star.cpp
 )
 
-add_executable(optimize_test
-    src/optimize_test.cpp)
+add_executable(ego_planner_test
+    src/ego_planner_test.cpp)
 
-target_link_libraries(optimize_test
+target_link_libraries(ego_planner_test
     ego_planner
     ${OpenCV_LIBS}
 )  
