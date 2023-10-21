@@ -1,4 +1,5 @@
 #include "planner_manager.h"
+#include "maps.h"
 #include <thread>
 
 using namespace std;
@@ -62,26 +63,18 @@ bool planFromGlobalTraj(const int trial_times /*=1*/) // zx-todo
 }
 
 
-Mat image = Mat::zeros(Size(1280, 720), CV_8UC3);
+Mat image = cv::Mat::ones(1280, 720, CV_8UC3);;
 
 Point start_pt(-1, -1);
 Point end_pt(-1, -1);
 bool is_optimized = false;
 void initMap(cv::Mat &img)
 {
-    int width = img.cols;
-    int height = img.rows;
-    img.setTo(cv::Scalar(255, 255, 255));
 
-    cv::rectangle(img, cv::Rect(100 + width / 2.0, 100 + height / 4.0, 200, 200), cv::Scalar(255, 0, 0), -1);
-
-    cv::rectangle(img, cv::Rect(100 + height / 3.0, 100, 100, 200), cv::Scalar(255, 0, 0), -1);
-    cv::circle(img, Point(200, 350), 100, cv::Scalar(0, 0, 255), -1);
-
-    cv::circle(img, Point(600, 200), 100, cv::Scalar(0, 0, 255), -1);
-
-    cv::circle(img, Point(480, 500), 100, cv::Scalar(0, 0, 255), -1);
+    image = cv::imread("../misc/map.png");
+     
     is_optimized = false;
+    return ;
 }
 void onMouse(int event, int x, int y, int flags, void *param)
 {
@@ -118,8 +111,18 @@ bool isPointWithinImage(const cv::Mat& image, const Point& point) {
 
 int main(int argc, char* argv[])
 {
+    cv::Mat temp;
+    initMap(temp);
+    
+    if(image.cols == 0 || image.rows == 0){
+        std::cerr << "image: cols:" << image.cols << " rows:"<< image.rows  << std::endl;
+        return 1;
+    }
 
-    initMap(image);
+    std::cerr << "image: cols:" << image.cols << " rows:"<< image.rows << " channel: " << image.channels() 
+                << " type: " << image.type()  << " " << CV_8UC1 <<std::endl;
+    
+
     std::cerr << "参数数量:" << argc<< std::endl;
     if (argc > 1 && argc != 5) {
         std::cerr << "请输入两个点的坐标(x1, y1, x2, y2)作为命令行参数！" << std::endl;
@@ -141,6 +144,22 @@ int main(int argc, char* argv[])
         }
     }
 
+    cv::Mat grey_mat;
+    cv::cvtColor(image, grey_mat, cv::COLOR_BGR2GRAY);
+
+    std::cerr << "grey_mat: cols:" << grey_mat.cols << " rows:"<< grey_mat.rows << " channel: " << grey_mat.channels() 
+                << " type: " << grey_mat.type()  << " " << CV_8UC1 <<std::endl;
+
+    TMapParam mapParam;
+    mapParam.height = grey_mat.rows;
+    mapParam.width = grey_mat.cols;
+    mapParam.resolution = 0.05;
+    mapParam.xMin = 0.0;
+    mapParam.yMin = 0.0;
+    TMapData planMap(mapParam, 0);
+    std::cerr << "image: height:" << mapParam.height << " width:"<< mapParam.width  << std::endl;
+    std::memcpy(&planMap.map[0], grey_mat.data, mapParam.height * mapParam.width);
+    planMap.WritePgm("../misc/ego_plan.pgm", true);
 
 
     namedWindow("Select points");
