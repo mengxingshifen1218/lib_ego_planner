@@ -130,7 +130,7 @@ bool AStar::ConvertToIndexAndAdjustStartEndPoints(Vector2d start_pt, Vector2d en
 
 ASTAR_RET AStar::AstarSearch(const double step_size, Vector2d start_pt, Vector2d end_pt)
 {
-    auto time_1 = Now();
+    auto time_1 = ego_planner::Now();
     ++rounds_;
 
     step_size_ = step_size;
@@ -240,7 +240,7 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector2d start_pt, Vector2d
                     neighborPtr->fScore = tentative_gScore + getHeu(neighborPtr, endPtr);
                 }
             }
-        auto time_2 = Now();
+        auto time_2 = ego_planner::Now();
         if ((time_2 - time_1).count() / 1e9 > 0.2)
         {
             printf("Failed in A star path searching !!! 0.2 seconds time limit exceeded.");
@@ -248,7 +248,7 @@ ASTAR_RET AStar::AstarSearch(const double step_size, Vector2d start_pt, Vector2d
         }
     }
 
-    auto time_2 = Now();
+    auto time_2 = ego_planner::Now();
 
     if ((time_2 - time_1).count() / 1e9 > 0.1)
         printf("Time consume in A star path finding is %.3fs, iter=%d", (time_2 - time_1).count() / 1e9, num_iter);

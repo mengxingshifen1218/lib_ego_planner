@@ -24,7 +24,7 @@ namespace ego_planner
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     /* main planning interface */
-    void initPlanModules(cv::Mat& map);
+    void initPlanModules(TMapData &map);
     bool computeInitState(
         const Eigen::Vector2d &start_pt, const Eigen::Vector2d &start_vel,
         const Eigen::Vector2d &start_acc, const Eigen::Vector2d &local_target_pt,

@@ -11,15 +11,15 @@ EGOPlannerManager::EGOPlannerManager() {}
 
 EGOPlannerManager::~EGOPlannerManager() { std::cout << "destory manager" << std::endl; }
 
-void EGOPlannerManager::initPlanModules(cv::Mat &map)
+void EGOPlannerManager::initPlanModules(TMapData &map)
 {
     /* read algorithm parameters */
     // 速度和加速度限制， 需要同步
-    pp_.max_vel_                = 1.5;
-    pp_.max_acc_                = 6.0;
+    pp_.max_vel_                = 1.0;
+    pp_.max_acc_                = 2.0;
     pp_.feasibility_tolerance_  = 0.0;
-    pp_.polyTraj_piece_length   = 1.5;
-    pp_.planning_horizon_       = 7.5;
+    pp_.polyTraj_piece_length   = 0.5;
+    pp_.planning_horizon_       = 3.5;
     pp_.use_multitopology_trajs = false;
 
     grid_map_.reset(new GridMap);

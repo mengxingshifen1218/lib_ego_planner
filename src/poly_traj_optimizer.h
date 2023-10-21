@@ -1,9 +1,9 @@
 #ifndef _POLY_TRAJ_OPTIMIZER_H_
 #define _POLY_TRAJ_OPTIMIZER_H_
 
-#include <Eigen/Eigen>
 #include "dyn_a_star.h"
 #include "grid_map.h"
+#include <Eigen/Eigen>
 
 #include "lbfgs.hpp"
 #include "plan_container.hpp"
@@ -12,9 +12,10 @@
 namespace ego_planner
 {
 
-  class ConstraintPoints
-  {
-  public:
+
+class ConstraintPoints
+{
+public:
     int cp_size; // deformation points
     Eigen::MatrixXd points;
     std::vector<std::vector<Eigen::Vector2d>> base_point; // The point at the statrt of the direction vector (collision point)
@@ -23,48 +24,46 @@ namespace ego_planner
 
     void resize_cp(const int size_set)
     {
-      cp_size = size_set;
+        cp_size = size_set;
 
-      base_point.clear();
-      direction.clear();
-      flag_temp.clear();
+        base_point.clear();
+        direction.clear();
+        flag_temp.clear();
 
-      points.resize(2, size_set);
-      base_point.resize(cp_size);
-      direction.resize(cp_size);
-      flag_temp.resize(cp_size);
+        points.resize(2, size_set);
+        base_point.resize(cp_size);
+        direction.resize(cp_size);
+        flag_temp.resize(cp_size);
     }
 
     void segment(ConstraintPoints &buf, const int start, const int end)
     {
-      if (start < 0 || end >= cp_size || points.rows() != 3)
-      {
-        printf("Wrong segment index! start=%d, end=%d", start, end);
-        return;
-      }
+        if (start < 0 || end >= cp_size || points.rows() != 3) {
+            printf("Wrong segment index! start=%d, end=%d", start, end);
+            return;
+        }
 
-      buf.resize_cp(end - start + 1);
-      buf.points = points.block(0, start, 3, end - start + 1);
-      buf.cp_size = end - start + 1;
-      for (int i = start; i <= end; i++)
-      {
-        buf.base_point[i - start] = base_point[i];
-        buf.direction[i - start] = direction[i];
-      }
+        buf.resize_cp(end - start + 1);
+        buf.points  = points.block(0, start, 3, end - start + 1);
+        buf.cp_size = end - start + 1;
+        for (int i = start; i <= end; i++) {
+            buf.base_point[i - start] = base_point[i];
+            buf.direction[i - start]  = direction[i];
+        }
     }
 
     static inline int two_thirds_id(Eigen::MatrixXd &points, const bool touch_goal)
     {
-      return touch_goal ? points.cols() - 1 : points.cols() - 1 - (points.cols() - 2) / 3;
+        return touch_goal ? points.cols() - 1 : points.cols() - 1 - (points.cols() - 2) / 3;
     }
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  };
+};
 
-  class PolyTrajOptimizer
-  {
+class PolyTrajOptimizer
+{
 
-  private:
+private:
     GridMap::Ptr grid_map_;
     AStar::Ptr a_star_;
     poly_traj::MinJerkOpt jerkOpt_;
@@ -78,17 +77,15 @@ namespace ego_planner
     int iter_num_;         // iteration of the solver
 
     bool touch_goal_;
-    struct MultitopologyData_t
-    {
-      bool use_multitopology_trajs{false};
-      bool initial_obstacles_avoided{false};
+    struct MultitopologyData_t {
+        bool use_multitopology_trajs{false};
+        bool initial_obstacles_avoided{false};
     } multitopology_data_;
 
-    enum FORCE_STOP_OPTIMIZE_TYPE
-    {
-      DONT_STOP,
-      STOP_FOR_REBOUND,
-      STOP_FOR_ERROR
+    enum FORCE_STOP_OPTIMIZE_TYPE {
+        DONT_STOP,
+        STOP_FOR_REBOUND,
+        STOP_FOR_ERROR
     } force_stop_type_;
 
     /* optimization parameters */
@@ -102,15 +99,14 @@ namespace ego_planner
     double lambda2_;
     double t_now_;
 
-  public:
+public:
     PolyTrajOptimizer() {}
     ~PolyTrajOptimizer() {}
 
-    enum CHK_RET
-    {
-      OBS_FREE,
-      ERR,
-      FINISH
+    enum CHK_RET {
+        OBS_FREE,
+        ERR,
+        FINISH
     };
 
     /* set variables */
@@ -149,7 +145,7 @@ namespace ego_planner
     /* multi-topo support */
     std::vector<ConstraintPoints> distinctiveTrajs(vector<std::pair<int, int>> segments);
 
-  private:
+private:
     /* callbacks by the L-BFGS optimizer */
     static double costFunctionCallback(void *func_data, const double *x, double *grad, const int n);
 
@@ -202,9 +198,9 @@ namespace ego_planner
                                       Eigen::MatrixXd &gdp,
                                       double &var);
 
-  public:
+public:
     typedef unique_ptr<PolyTrajOptimizer> Ptr;
-  };
+};
 
 } // namespace ego_planner
 #endif
