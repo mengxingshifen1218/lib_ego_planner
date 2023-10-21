@@ -7,7 +7,8 @@ find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 include_directories( 
-    include 
+    include
+    lib 
     ${EIGEN3_INCLUDE_DIR} 
     ${OpenCV_INCLUDE_DIRS}
 )
@@ -26,12 +27,17 @@ add_library(ego_planner
     src/dyn_a_star.cpp
 )
 
+file(GLOB LIBRARIES "lib/*.cpp")
+
+add_library(imgproc ${LIBRARIES})
+
 add_executable(ego_planner_test
     src/ego_planner_test.cpp)
 
 target_link_libraries(ego_planner_test
     ego_planner
     ${OpenCV_LIBS}
+    imgproc
 )  
 
 add_executable(main

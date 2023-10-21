@@ -9,6 +9,8 @@
 #include "plan_container.hpp"
 #include "poly_traj_utils.hpp"
 
+#include "astar.h"
+
 namespace ego_planner
 {
 
@@ -65,7 +67,9 @@ class PolyTrajOptimizer
 
 private:
     GridMap::Ptr grid_map_;
-    AStar::Ptr a_star_;
+    // AStar::Ptr a_star_;
+    std::unique_ptr<LDCV::CAStar> a_star_;
+
     poly_traj::MinJerkOpt jerkOpt_;
 
     ConstraintPoints cps_;

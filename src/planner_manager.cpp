@@ -20,13 +20,13 @@ void EGOPlannerManager::initPlanModules(TMapData &map)
     pp_.feasibility_tolerance_  = 0.0;
     pp_.polyTraj_piece_length   = 0.5;
     pp_.planning_horizon_       = 3.5;
-    pp_.use_multitopology_trajs = false;
-
+    // TODO
     grid_map_.reset(new GridMap);
     grid_map_->initMap(map);
 
     ploy_traj_opt_.reset(new PolyTrajOptimizer);
     ploy_traj_opt_->setParam();
+    // TODO
     ploy_traj_opt_->setEnvironment(grid_map_);
 }
 
@@ -39,7 +39,7 @@ bool EGOPlannerManager::reboundReplan(
     Time t_start = Now();
     chrono::duration<double> t_init, t_opt;
 
-    static int count = 0;
+    // static int count = 0;
     // cout << "\033[47;30m\n[" << t_start << "] Drone " << pp_.drone_id << " Replan " << count++ << "\033[0m" << endl;
     // cout.precision(3);
     // cout << "start: " << start_pt.transpose() << ", " << start_vel.transpose() << "\ngoal:" << local_target_pt.transpose() << ", " << local_target_vel.transpose()
@@ -80,67 +80,20 @@ bool EGOPlannerManager::reboundReplan(
 
     // printf("BBBB");
 
-    if (pp_.use_multitopology_trajs) {
-        std::vector<ConstraintPoints> trajs = ploy_traj_opt_->distinctiveTrajs(segments);
-        Eigen::VectorXi success             = Eigen::VectorXi::Zero(trajs.size());
-        poly_traj::Trajectory initTraj      = init_MJO.getTraj();
-        int PN                              = initTraj.getPieceNum();
-        Eigen::MatrixXd all_pos             = initTraj.getPositions();
-        Eigen::MatrixXd innerPts            = all_pos.block(0, 1, 3, PN - 1);
-        Eigen::Matrix<double, 2, 3> headState, tailState;
-        headState << initTraj.getJuncPos(0), initTraj.getJuncVel(0), initTraj.getJuncAcc(0);
-        tailState << initTraj.getJuncPos(PN), initTraj.getJuncVel(PN), initTraj.getJuncAcc(PN);
-        double final_cost, min_cost = 999999.0;
+    poly_traj::Trajectory initTraj = init_MJO.getTraj();
 
-        for (int i = trajs.size() - 1; i >= 0; i--) {
-            ploy_traj_opt_->setConstraintPoints(trajs[i]);
-            ploy_traj_opt_->setUseMultitopologyTrajs(true);
-            if (ploy_traj_opt_->optimizeTrajectory(headState, tailState,
-                                                   innerPts, initTraj.getDurations(), final_cost)) {
-                success[i] = true;
+    int PN                   = initTraj.getPieceNum();
+    Eigen::MatrixXd all_pos  = initTraj.getPositions();
+    Eigen::MatrixXd innerPts = all_pos.block(0, 1, 2, PN - 1);
+    Eigen::Matrix<double, 2, 3> headState, tailState;
+    headState << initTraj.getJuncPos(0), initTraj.getJuncVel(0), initTraj.getJuncAcc(0);
+    tailState << initTraj.getJuncPos(PN), initTraj.getJuncVel(PN), initTraj.getJuncAcc(PN);
+    double final_cost;
+    flag_success = ploy_traj_opt_->optimizeTrajectory(headState, tailState,
+                                                      innerPts, initTraj.getDurations(), final_cost);
+    best_MJO     = ploy_traj_opt_->getMinJerkOpt();
 
-                if (final_cost < min_cost) {
-                    min_cost     = final_cost;
-                    best_MJO     = ploy_traj_opt_->getMinJerkOpt();
-                    flag_success = true;
-                }
-
-                // visualization
-                Eigen::MatrixXd ctrl_pts_temp = ploy_traj_opt_->getMinJerkOpt().getInitConstraintPoints(ploy_traj_opt_->get_cps_num_prePiece_());
-                std::vector<Eigen::Vector2d> point_set;
-                for (int j = 0; j < ctrl_pts_temp.cols(); j++) {
-                    point_set.push_back(ctrl_pts_temp.col(j));
-                }
-                vis_trajs.push_back(point_set);
-            }
-        }
-
-        t_opt = Now() - t_start;
-
-        if (trajs.size() > 1) {
-            cout << "\033[1;33m"
-                 << "multi-trajs=" << trajs.size() << ",\033[1;0m"
-                 << " Success:fail=" << success.sum() << ":" << success.size() - success.sum() << endl;
-        }
-
-        // visualization_->displayMultiOptimalPathList(vis_trajs, 0.1); // This visuallization will take up several milliseconds.
-    } else {
-
-        poly_traj::Trajectory initTraj = init_MJO.getTraj();
-
-        int PN                   = initTraj.getPieceNum();
-        Eigen::MatrixXd all_pos  = initTraj.getPositions();
-        Eigen::MatrixXd innerPts = all_pos.block(0, 1, 2, PN - 1);
-        Eigen::Matrix<double, 2, 3> headState, tailState;
-        headState << initTraj.getJuncPos(0), initTraj.getJuncVel(0), initTraj.getJuncAcc(0);
-        tailState << initTraj.getJuncPos(PN), initTraj.getJuncVel(PN), initTraj.getJuncAcc(PN);
-        double final_cost;
-        flag_success = ploy_traj_opt_->optimizeTrajectory(headState, tailState,
-                                                          innerPts, initTraj.getDurations(), final_cost);
-        best_MJO     = ploy_traj_opt_->getMinJerkOpt();
-
-        t_opt = Now() - t_start;
-    }
+    t_opt = Now() - t_start;
 
     /*** STEP 3: Store and display results ***/
     printf("Success=\033[42m %s", (flag_success ? "yes \033[0m\n" : "no \033[0m\n"));
@@ -249,7 +202,7 @@ bool EGOPlannerManager::computeInitState(
         }
 
         /* the trajectory time system is a little bit complicated... */
-        double passed_t_on_local_traj = toSec(Now()) - traj_.local_traj.start_time;
+        double passed_t_on_local_traj = Now().time_since_epoch().count() / 1e9 - traj_.local_traj.start_time;
         double t_to_local_end         = traj_.local_traj.duration - passed_t_on_local_traj;
         if (t_to_local_end < 0) {
             printf("t_to_local_end < 0, exit and wait for another call.");
@@ -338,7 +291,7 @@ bool EGOPlannerManager::setLocalTrajFromOpt(const poly_traj::MinJerkOpt &opt, co
     bool ret = ploy_traj_opt_->computePointsToCheck(traj, ConstraintPoints::two_thirds_id(cps, touch_goal), pts_to_check);
     if (ret && pts_to_check.size() >= 1 && pts_to_check.back().size() >= 1) {
         cout << "set local traj" << endl;
-        traj_.setLocalTraj(traj, pts_to_check, toSec(Now()));
+        traj_.setLocalTraj(traj, pts_to_check, Now().time_since_epoch().count() / 1e9);
     }
 
     return ret;
@@ -413,7 +366,7 @@ bool EGOPlannerManager::planGlobalTrajWaypoints(
         des_vel /= 1.5;
     }
 
-    traj_.setGlobalTraj(globalMJO.getTraj(), toSec(Now()));
+    traj_.setGlobalTraj(globalMJO.getTraj(), Now().time_since_epoch().count() / 1e9);
 
     return true;
 }
