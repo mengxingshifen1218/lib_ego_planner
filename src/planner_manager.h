@@ -3,21 +3,21 @@
 
 #include <stdlib.h>
 
-#include "poly_traj_optimizer.h"
 #include "grid_map.h"
 #include "plan_container.hpp"
+#include "poly_traj_optimizer.h"
 #include "poly_traj_utils.hpp"
 
 namespace ego_planner
 {
 
-  // Fast Planner Manager
-  // Key algorithms of mapping and planning are called
+// Fast Planner Manager
+// Key algorithms of mapping and planning are called
 
-  class EGOPlannerManager
-  {
+class EGOPlannerManager
+{
     // SECTION stable
-  public:
+public:
     EGOPlannerManager();
     ~EGOPlannerManager();
 
@@ -35,6 +35,9 @@ namespace ego_planner
         const Eigen::Vector2d &start_acc, const Eigen::Vector2d &end_pt,
         const Eigen::Vector2d &end_vel, const bool flag_polyInit,
         const bool flag_randomPolyTraj, const bool touch_goal);
+    bool calculateGlobalTrajWaypoints(const Eigen::Vector2d &start_pos, const Eigen::Vector2d &start_vel,
+                                      const Eigen::Vector2d &start_acc, const Eigen::Vector2d &end_pos,
+                                      const Eigen::Vector2d &end_vel, const Eigen::Vector2d &end_acc);
     bool planGlobalTrajWaypoints(
         const Eigen::Vector2d &start_pos, const Eigen::Vector2d &start_vel,
         const Eigen::Vector2d &start_acc, const std::vector<Eigen::Vector2d> &waypoints,
@@ -54,18 +57,18 @@ namespace ego_planner
     PlanParameters pp_;
     GridMap::Ptr grid_map_;
     TrajContainer traj_;
+    std::vector<Eigen::Vector2d> astar_path_;
 
-  private:
-
+private:
     PolyTrajOptimizer::Ptr ploy_traj_opt_;
 
     int continous_failures_count_{0};
 
-  public:
+public:
     typedef unique_ptr<EGOPlannerManager> Ptr;
 
     // !SECTION
-  };
+};
 } // namespace ego_planner
 
 #endif

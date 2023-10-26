@@ -751,7 +751,7 @@ double PolyTrajOptimizer::costFunctionCallback(void *func_data, const double *x,
     opt->VirtualTGradCost(T, t, gradT, gradt, time_cost); // Real time back to virtual time
 
     opt->iter_num_ += 1;
-    return smoo_cost + obs_swarm_feas_qvar_costs.sum() + time_cost; // 计算所有代价
+    return 4.0 * smoo_cost + obs_swarm_feas_qvar_costs.sum() + time_cost; // 计算所有代价
 }
 
 int PolyTrajOptimizer::earlyExitCallback(void *func_data, const double *x, const double *g, const double fx, const double xnorm, const double gnorm, const double step, int n, int k, int ls)
@@ -1123,5 +1123,51 @@ void PolyTrajOptimizer::setControlPoints(const Eigen::MatrixXd &points)
 void PolyTrajOptimizer::setIfTouchGoal(const bool touch_goal) { touch_goal_ = touch_goal; }
 
 void PolyTrajOptimizer::setConstraintPoints(ConstraintPoints cps) { cps_ = cps; }
+
+
+bool PolyTrajOptimizer::calculateAstarPath(const Eigen::Vector2d &start_pos, const Eigen::Vector2d &end_pos, std::vector<Eigen::Vector2d> &astar_path){
+    vector<LDCV::Point> path;
+    LDCV::Point start_pt, target_pt;
+    float maxRFromStart = 0.0;
+    TMapData &mapF      = grid_map_->map_;
+    LDCV::Mat matF(mapF.mapParam.height, mapF.mapParam.width, &mapF.map[0]);
+    LDCV::Mat matTrap(mapF.mapParam.height, mapF.mapParam.width);
+    int size = mapF.mapParam.height * mapF.mapParam.width;
+    for(int i = 0; i < size; i++){
+        if(matF.data[i] <= 127){
+            matF.data[i] = 0;
+        }
+    }
+    a_star_->updateMap(&matF);
+    // mapF.WritePgm("../misc/mapF.pgm", false);
+    
+    start_pt.x  = mapF.x2idx(start_pos[0]);
+    start_pt.y  = mapF.y2idx(start_pos[1]);
+    target_pt.x = mapF.x2idx(end_pos[0]);
+    target_pt.y = mapF.y2idx(end_pos[1]);
+
+    if(matF.data[start_pt.y * mapF.mapParam.width + start_pt.x] == 0){
+        std::cout<<" start point is in black or grey"<<std::endl;
+        return false;
+    }
+
+    if(matF.data[target_pt.y * mapF.mapParam.width + target_pt.x] == 0){
+        std::cout<<" target_pt point is in black or grey"<<std::endl;
+        return false;
+    }    
+
+    vector<LDCV::Point>().swap(path);
+    LDCV::CAStar::AstarResult ret = a_star_->FindPath(start_pt, target_pt, path, maxRFromStart, matTrap);
+    if(ret == LDCV::CAStar::AstarResult::ASR_SUCCESS){
+        astar_path.resize(path.size());
+        for (size_t idx = 0; idx < path.size(); idx++) {
+            astar_path[idx][0] = mapF.idx2x(path[idx].x);
+            astar_path[idx][1] = mapF.idx2y(path[idx].y);
+        }
+        return true;
+    }
+    return false;
+}
+
 
 } // namespace ego_planner

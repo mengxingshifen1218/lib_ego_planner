@@ -15,11 +15,11 @@ void EGOPlannerManager::initPlanModules(TMapData &map)
 {
     /* read algorithm parameters */
     // 速度和加速度限制， 需要同步
-    pp_.max_vel_                = 1.0;
-    pp_.max_acc_                = 2.0;
-    pp_.feasibility_tolerance_  = 0.0;
-    pp_.polyTraj_piece_length   = 0.5;
-    pp_.planning_horizon_       = 3.5;
+    pp_.max_vel_               = 1.0;
+    pp_.max_acc_               = 2.0;
+    pp_.feasibility_tolerance_ = 0.0;
+    pp_.polyTraj_piece_length  = 0.5;
+    pp_.planning_horizon_      = 6.5;
     // TODO
     grid_map_.reset(new GridMap);
     grid_map_->initMap(map);
@@ -77,8 +77,6 @@ bool EGOPlannerManager::reboundReplan(
     bool flag_success = false;
     vector<vector<Eigen::Vector2d>> vis_trajs;
     poly_traj::MinJerkOpt best_MJO;
-
-    // printf("BBBB");
 
     poly_traj::Trajectory initTraj = init_MJO.getTraj();
 
@@ -248,19 +246,19 @@ void EGOPlannerManager::getLocalTarget(
 {
     double t;
     touch_goal = false;
-    cout << __LINE__ << " get local target" << endl;
+
     traj_.global_traj.global_t_last_local_target = traj_.global_traj.global_t_local_target;
 
-    double t_step = planning_horizon / 20 / pp_.max_vel_;
-    // double dist_min = 9999, dist_min_t = 0.0;
+    double t_step   = planning_horizon / 20 / pp_.max_vel_;
+    double dist_min = 9999, dist_min_t = 0.0;
 
     for (t = traj_.global_traj.global_t_local_target;
          t < (traj_.global_traj.global_start_time + traj_.global_traj.duration);
          t += t_step) {
-        cout << __LINE__ << " get local target" << endl;
+        traj_.global_traj.traj.getPos(0);
+
         Eigen::Vector2d pos_t = traj_.global_traj.traj.getPos(t - traj_.global_traj.global_start_time);
-        cout << __LINE__ << " get local target" << endl;
-        double dist = (pos_t - start_pt).norm();
+        double dist           = (pos_t - start_pt).norm();
 
         if (dist >= planning_horizon) {
             local_target_pos                        = pos_t;
@@ -268,14 +266,14 @@ void EGOPlannerManager::getLocalTarget(
             break;
         }
     }
-    cout << __LINE__ << "get local target" << endl;
+
     if ((t - traj_.global_traj.global_start_time) >= traj_.global_traj.duration - 1e-5) // Last global point
     {
         local_target_pos                        = global_end_pt;
         traj_.global_traj.global_t_local_target = traj_.global_traj.global_start_time + traj_.global_traj.duration;
         touch_goal                              = true;
     }
-    cout << __LINE__ << "get local target" << endl;
+    // cout << __LINE__ << "get local target" << endl;
     if ((global_end_pt - local_target_pos).norm() < (pp_.max_vel_ * pp_.max_vel_) / (2 * pp_.max_acc_)) {
         local_target_vel = Eigen::Vector2d::Zero();
     } else {
@@ -311,6 +309,26 @@ bool EGOPlannerManager::EmergencyStop(Eigen::Vector2d stop_pos)
 
     return true;
 }
+
+bool EGOPlannerManager::calculateGlobalTrajWaypoints(const Eigen::Vector2d &start_pos, const Eigen::Vector2d &start_vel,
+                                                     const Eigen::Vector2d &start_acc, const Eigen::Vector2d &end_pos,
+                                                     const Eigen::Vector2d &end_vel, const Eigen::Vector2d &end_acc)
+{
+    bool success = true;
+    if(ploy_traj_opt_){
+        success = ploy_traj_opt_->calculateAstarPath(start_pos, end_pos, astar_path_);
+    }
+    if(success == false){
+        return success;
+    }
+    std::vector<Eigen::Vector2d> one_pt_wps;
+    one_pt_wps.push_back(end_pos);
+     planGlobalTrajWaypoints(
+        start_pos, start_vel, start_acc,
+        astar_path_, end_vel, end_acc);
+    return success;
+}
+
 
 bool EGOPlannerManager::planGlobalTrajWaypoints(
     const Eigen::Vector2d &start_pos, const Eigen::Vector2d &start_vel,

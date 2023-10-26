@@ -145,6 +145,7 @@ public:
     bool roughlyCheckConstraintPoints(void);
 
     bool allowRebound(void);
+    bool calculateAstarPath(const Eigen::Vector2d &start_pos, const Eigen::Vector2d &end_pos, std::vector<Eigen::Vector2d> &astar_path);
 
     /* multi-topo support */
     std::vector<ConstraintPoints> distinctiveTrajs(vector<std::pair<int, int>> segments);
