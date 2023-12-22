@@ -8,7 +8,7 @@ mkdir build
 cd build
 cmake ..
 make
-./optimize_test
+./ego_planner
 ```
 
 Then you will see a window, and you can use listed operation of mouse:
